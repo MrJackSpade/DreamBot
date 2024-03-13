@@ -1,4 +1,6 @@
 ﻿using Discord;
+using Discord.Rest;
+using Discord.WebSocket;
 using DreamBot.Collections;
 using DreamBot.Constants;
 using DreamBot.Extensions;
@@ -14,7 +16,7 @@ namespace DreamBot
 {
     internal class Program
     {
-        private static readonly AutomaticService _automaticService;
+        private static readonly Dictionary<string, AutomaticService> _automaticServices = [];
 
         private static readonly Configuration _configuration;
 
@@ -35,34 +37,57 @@ namespace DreamBot
                 Token = _configuration.Token
             });
 
-            _automaticService = new AutomaticService(new(_configuration.AutomaticHost, _configuration.AutomaticPort)
+            foreach (AutomaticEndPoint endpoint in _configuration.Endpoints)
             {
-                AggressiveOptimizations = _configuration.AggressiveOptimizations
-            });
+                AutomaticService _automaticService = new(new(endpoint.AutomaticHost, endpoint.AutomaticPort)
+                {
+                    AggressiveOptimizations = endpoint.AggressiveOptimizations
+                });
+
+                _automaticServices.Add(endpoint.DisplayName, _automaticService);
+            }
 
             _userTasks = new TaskCollection(_configuration.MaxUserQueue);
         }
 
-        public static Task<string> GenerateImage(GenerateImageCommand socketSlashCommand)
+        public static Task<string> GenerateImage(GenerateImageCommand generateImageCommand)
         {
-            if (socketSlashCommand.ChannelId is null || socketSlashCommand.User is null)
+            if (generateImageCommand.Channel is null || generateImageCommand.User is null)
             {
                 return Task.FromResult("Invalid Request");
             }
 
-            ulong requesterId = socketSlashCommand.User.Id;
+            ulong channelId = generateImageCommand.Channel.Id;
+            ulong requesterId = generateImageCommand.User.Id;
 
-            ChannelConfiguration channelConfiguration = ConfigurationService.GetChannelConfiguration(socketSlashCommand.ChannelId.Value);
+            ChannelConfiguration channelConfiguration = ConfigurationService.GetChannelConfiguration(channelId);
 
-            Resolution resolution = channelConfiguration.Resolutions[socketSlashCommand.AspectRatio.ToString()];
+            if (string.IsNullOrWhiteSpace(channelConfiguration.DefaultStyle))
+            {
+                return Task.FromResult("Channel does not have Default Style set");
+            }
+
+            AutomaticEndPoint? matchingEndpoint = _configuration.Endpoints.Where(e => e.SupportedStyleNames.Contains(channelConfiguration.DefaultStyle)).FirstOrDefault();
+
+            if (matchingEndpoint is null)
+            {
+                return Task.FromResult($"No endpoint supporting model '{channelConfiguration.DefaultStyle}' found in configuration");
+            }
+
+            if (!_automaticServices.TryGetValue(matchingEndpoint.DisplayName, out AutomaticService? automaticService))
+            {
+                return Task.FromResult($"No AutomaticService found with display name '{matchingEndpoint.DisplayName}'");
+            }
+
+            Resolution resolution = channelConfiguration.Resolutions[generateImageCommand.AspectRatio.ToString()];
 
             Txt2Img settings = new()
             {
-                Prompt = socketSlashCommand.Prompt.ApplyTemplate(channelConfiguration.Prompt),
-                NegativePrompt = socketSlashCommand.NegativePrompt.ApplyTemplate(channelConfiguration.NegativePrompt),
+                Prompt = generateImageCommand.Prompt.ApplyTemplate(channelConfiguration.Prompt),
+                NegativePrompt = generateImageCommand.NegativePrompt.ApplyTemplate(channelConfiguration.NegativePrompt),
                 Width = resolution.Width,
                 Height = resolution.Height,
-                Seed = socketSlashCommand.Seed
+                Seed = generateImageCommand.Seed
             };
 
             CancellationTokenSource cts = new();
@@ -74,15 +99,15 @@ namespace DreamBot
 
             queuedTask.OnCancelled += (s, e) => cts.Cancel();
 
-            QueueTxt2ImgTaskResult genTaskResult = _automaticService.Txt2Image(settings, cts.Token);
+            QueueTxt2ImgTaskResult genTaskResult = automaticService.Txt2Image(settings, cts.Token);
 
             queuedTask.AutomaticTask = genTaskResult.AutomaticTask;
 
             _threadService.Enqueue(async () =>
             {
-                string title = $"*<@{requesterId}> is dreaming of **{socketSlashCommand.Prompt}***";
+                string title = $"*<@{requesterId}> is dreaming of **{generateImageCommand.Prompt}***";
 
-                GenerationEmbed placeholder = await _discordService.CreateMessage(title, socketSlashCommand.ChannelId.Value);
+                GenerationPlaceholder placeholder = await _discordService.CreateMessage(title, generateImageCommand.Channel);
 
                 queuedTask.MessageId = placeholder.Message.Id;
 
@@ -142,8 +167,10 @@ namespace DreamBot
                         if (!string.IsNullOrWhiteSpace(genTaskResult.AutomaticTask?.State?.CurrentImage))
                         {
                             await placeholder.Message.AddReactionAsync(new Emoji("⭐"));
-                            await socketSlashCommand.User.SendFileAsync(finalBody, genTaskResult.AutomaticTask.State.CurrentImage);
+                            //await generateImageCommand.User.SendFileAsync(finalBody, genTaskResult.AutomaticTask.State.CurrentImage);
                         }
+
+                        await UpdateForumImage(generateImageCommand.Channel, genTaskResult.AutomaticTask.State.CurrentImage);
                     }
                 }
                 finally
@@ -183,12 +210,12 @@ namespace DreamBot
 
         public static Task<string> UpdateSettings(UpdateSettingsCommand socketSlashCommand)
         {
-            if (socketSlashCommand.ChannelId is null || socketSlashCommand.User is null)
+            if (socketSlashCommand.Channel is null || socketSlashCommand.User is null)
             {
                 return Task.FromResult("Invalid Request");
             }
 
-            ChannelConfiguration channelConfiguration = ConfigurationService.GetChannelConfiguration(socketSlashCommand.ChannelId.Value);
+            ChannelConfiguration channelConfiguration = ConfigurationService.GetChannelConfiguration(socketSlashCommand.Channel.Id);
 
             if (socketSlashCommand.LandscapeWidth != 0)
             {
@@ -230,11 +257,86 @@ namespace DreamBot
                 channelConfiguration.NegativePrompt = socketSlashCommand.NegativePrompt;
             }
 
-            ConfigurationService.SaveChannelConfiguration(socketSlashCommand.ChannelId.Value, channelConfiguration);
+            if (!string.IsNullOrWhiteSpace(socketSlashCommand.DefaultStyle))
+            {
+                channelConfiguration.DefaultStyle = socketSlashCommand.DefaultStyle;
+            }
+
+            ConfigurationService.SaveChannelConfiguration(socketSlashCommand.Channel.Id, channelConfiguration);
 
             string settingValue = JsonConvert.SerializeObject(channelConfiguration, Formatting.Indented);
 
             return Task.FromResult($"```{settingValue}```");
+        }
+
+        private static async Task<string> CreateThread(CreateThreadCommand command)
+        {
+            if (command.Channel == null)
+            {
+                return "Null channel";
+            }
+
+            ulong channelid = command.Channel.Id;
+
+            if (_configuration.ThreadCreationChannels is null)
+            {
+                return "Configuration contains null value for ThreadCreationChannels";
+            }
+
+            if (!_configuration.ThreadCreationChannels.Contains(channelid))
+            {
+                return "Can not create a thread in this channel";
+            }
+
+            if (command.Channel is not SocketThreadChannel stc)
+            {
+                return "Current channel is not SocketThreadChannel";
+            }
+
+            if (stc.ParentChannel is not SocketForumChannel sfc)
+            {
+                return "Parent channel is not SocketForumChannel";
+            }
+
+            if (_configuration.Styles.FirstOrDefault(s => s.DisplayName == command.DefaultStyle) is not Style defaultStyle)
+            {
+                return $"No configured style with name {command.DefaultStyle} found";
+            }
+
+
+            string desc = command.Description;
+
+            if(string.IsNullOrWhiteSpace(desc))
+            {
+                desc = command.Title;
+            }
+
+            desc = $"{desc} by <@{command.User.Id}>";
+
+            RestThreadChannel ric = await sfc.CreatePostAsync(command.Title, text: desc);
+
+            ChannelConfiguration channelConfiguration = ConfigurationService.GetChannelConfiguration(ric.Id);
+
+            channelConfiguration.DefaultStyle = command.DefaultStyle;
+
+            channelConfiguration.Prompt = defaultStyle.DisplayName;
+            channelConfiguration.Prompt = defaultStyle.PositivePrompt;
+            channelConfiguration.NegativePrompt = defaultStyle.NegativePrompt;
+
+            ConfigurationService.SaveChannelConfiguration(ric.Id, channelConfiguration);
+
+            string message = $"Your thread was created > https://discord.com/channels/{channelid}/{ric.Id}";
+
+            await foreach (IReadOnlyCollection<RestMessage>? messages in ric.GetMessagesAsync(100))
+            {
+                if (messages.FirstOrDefault() is RestUserMessage rum)
+                {
+                    await rum.PinAsync();
+                    return message;
+                }
+            }
+
+            return message;
         }
 
         private static async Task Main(string[] args)
@@ -244,6 +346,9 @@ namespace DreamBot
             await _discordService.AddCommand<GenerateImageCommand>("Dream", "Generates an image", GenerateImage);
 
             await _discordService.AddCommand<UpdateSettingsCommand>("Settings", "Updates Settings", UpdateSettings);
+
+            await _discordService.AddCommand<CreateThreadCommand>("new_thread", "Creates a new thread for image generation", CreateThread, 
+                new SlashCommandOption("default_style", "The type of model to use for image generation", true, _configuration.Styles.Select(m => m.DisplayName).ToArray()));
 
             _discordService.ReactionAdded += ReactionAdded;
 
@@ -277,6 +382,31 @@ namespace DreamBot
             {
                 // Handle any exceptions that occur during the process
                 Console.WriteLine($"An error occurred: {ex.Message}");
+            }
+        }
+
+        private static async Task UpdateForumImage(IChannel channel, string? currentImage)
+        {
+            //Check if the channel is a forum channel
+            if (channel is SocketThreadChannel threadChannel)
+            {
+                IReadOnlyCollection<IMessage> pinned = await threadChannel.GetPinnedMessagesAsync();
+
+                IMessage firstMessage = pinned.FirstOrDefault();
+
+                if (firstMessage is not RestUserMessage sum)
+                {
+                    return;
+                }
+
+                if (firstMessage.Author.Id != _discordService.User.Id)
+                {
+                    return;
+                }
+
+                using DisposableFileAttachment disposableFileAttachment = ImageService.CreateThumb(currentImage, "preview.png");
+
+                await sum.ModifyAsync(m => m.Attachments = new FileAttachment[] { disposableFileAttachment.Attachment });
             }
         }
     }

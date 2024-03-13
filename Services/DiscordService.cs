@@ -5,9 +5,11 @@ using DreamBot.Exceptions;
 using DreamBot.Models;
 using DreamBot.Models.Automatic;
 using DreamBot.Models.Commands;
+using DreamBot.Extensions;
 using DreamBot.Models.Events;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
+using System.Runtime.Serialization;
 
 namespace DreamBot.Services
 {
@@ -25,33 +27,32 @@ namespace DreamBot.Services
 
         private readonly DiscordServiceSettings _settings;
 
+        public IUser User { get; set; }
+
         public DiscordService(DiscordServiceSettings settings)
         {
-            _settings = settings;
-            _discordClient = new DiscordSocketClient();
-            _discordClient.Log += this.DiscordClient_Log;
-            _discordClient.Ready += this.DiscordClient_Ready;
-            _discordClient.SlashCommandExecuted += this.SlashCommandHandler;
-            _discordClient.ReactionAdded += async (cache, channel, reaction) =>
+            this._settings = settings;
+            this._discordClient = new DiscordSocketClient();
+            this._discordClient.Log += this.DiscordClient_Log;
+            this._discordClient.Ready += this.DiscordClient_Ready;
+            this._discordClient.SlashCommandExecuted += this.SlashCommandHandler;
+            this._discordClient.ReactionAdded += async (cache, channel, reaction) =>
             {
-                if (ReactionAdded != null)
+                if (this.ReactionAdded != null)
                 {
-                    await ReactionAdded.Invoke(new ReactionEventArgs(cache, channel, reaction));
+                    await this.ReactionAdded.Invoke(new ReactionEventArgs(cache, channel, reaction));
                 }
             };
         }
-
-        public IUser User { get; set; }
 
         public static T CastType<T>(SocketSlashCommand source) where T : BaseCommand, new()
         {
             T payload = new()
             {
-                User = source.User,
-                ChannelId = source.ChannelId
+                Command = source
             };
 
-            Dictionary<string, PropertyInfo> propertyDict = new();
+            Dictionary<string, PropertyInfo> propertyDict = [];
 
             foreach (PropertyInfo pi in typeof(T).GetProperties())
             {
@@ -119,82 +120,29 @@ namespace DreamBot.Services
             return payload;
         }
 
-        public async Task AddCommand<T>(string command, string description, Func<T, Task<string>> action) where T : BaseCommand, new()
+        public async Task AddCommand<T>(string command, string description, Func<T, Task<string>> action, params SlashCommandOption[] slashCommandOptions) where T : BaseCommand, new()
         {
             command = command.ToLower();
 
-            _commandCallbacks.Add(command, (c) => action.Invoke(CastType<T>(c)));
+            this._commandCallbacks.Add(command, (c) => action.Invoke(CastType<T>(c)));
 
             SlashCommandBuilder commandBuilder = new SlashCommandBuilder()
                 .WithName(command)
                 .WithDescription(description);
 
-            foreach (PropertyInfo property in typeof(T).GetProperties())
+            slashCommandOptions ??= [];
+
+            foreach (SlashCommandOption option in slashCommandOptions)
             {
-                if (property.DeclaringType != property.ReflectedType)
-                {
-                    continue;
-                }
-
-                SlashCommandOptionBuilder optionBuilder = new();
-
-                string oname = property.Name.ToLower();
-                string odescription = property.Name;
-
-                if (property.GetCustomAttribute<DisplayAttribute>() is DisplayAttribute d)
-                {
-                    if (!string.IsNullOrWhiteSpace(d.Name))
-                    {
-                        oname = d.Name.ToLower();
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(d.Description))
-                    {
-                        odescription = d.Description;
-                    }
-                }
-
-                optionBuilder = optionBuilder.WithName(oname);
-                optionBuilder = optionBuilder.WithDescription(odescription);
-
-                if (property.GetCustomAttribute<RequiredAttribute>() is RequiredAttribute r)
-                {
-                    optionBuilder = optionBuilder.WithRequired(true);
-                }
-
-                if (property.PropertyType.IsEnum)
-                {
-                    optionBuilder = optionBuilder.WithType(ApplicationCommandOptionType.String);
-
-                    foreach (Enum value in Enum.GetValues(property.PropertyType))
-                    {
-                        optionBuilder.AddChoice(value.ToString(), value.ToString());
-                    }
-                }
-                else
-                {
-                    switch (property.PropertyType.Name)
-                    {
-                        case nameof(String):
-                            optionBuilder = optionBuilder.WithType(ApplicationCommandOptionType.String);
-                            break;
-
-                        case nameof(Int32):
-                        case nameof(Int64):
-                        case nameof(UInt32):
-                        case nameof(UInt64):
-                            optionBuilder = optionBuilder.WithType(ApplicationCommandOptionType.Integer);
-                            break;
-
-                        default:
-                            throw new NotImplementedException();
-                    }
-                }
-
-                commandBuilder.AddOption(optionBuilder);
+                commandBuilder.AddOption(option);
             }
 
-            foreach (SocketGuild? Guild in _discordClient.Guilds)
+            foreach (PropertyInfo property in typeof(T).GetProperties())
+            {
+                commandBuilder.TryAddOption(property);
+            }
+
+            foreach (SocketGuild? Guild in this._discordClient.Guilds)
             {
                 await Guild.CreateApplicationCommandAsync(commandBuilder.Build());
             }
@@ -202,21 +150,26 @@ namespace DreamBot.Services
 
         public async Task Connect()
         {
-            await _discordClient.LoginAsync(TokenType.Bot, _settings.Token);
-            await _discordClient.StartAsync();
-            await _readyTask.Task;
-            User = _discordClient.CurrentUser;
+            await this._discordClient.LoginAsync(TokenType.Bot, this._settings.Token);
+            await this._discordClient.StartAsync();
+            await this._readyTask.Task;
+            this.User = this._discordClient.CurrentUser;
         }
 
-        public async Task<GenerationEmbed> CreateMessage(string title, ulong channel)
+        public async Task<GenerationPlaceholder> CreateMessage(string title, ulong channel)
         {
-            IChannel socketChannel = await _discordClient.GetChannelAsync(channel);
+            IChannel socketChannel = await this._discordClient.GetChannelAsync(channel);
 
+            return await this.CreateMessage(title, socketChannel);
+        }
+
+        public async Task<GenerationPlaceholder> CreateMessage(string title, IChannel socketChannel)
+        {
             if (socketChannel is SocketTextChannel stc)
             {
                 RestUserMessage message = await stc.SendMessageAsync(title);
 
-                return new GenerationEmbed()
+                return new GenerationPlaceholder()
                 {
                     Message = message
                 };
@@ -233,11 +186,11 @@ namespace DreamBot.Services
 
         private Task DiscordClient_Ready()
         {
-            Console.WriteLine($"Connected as {_discordClient.CurrentUser}");
+            Console.WriteLine($"Connected as {this._discordClient.CurrentUser}");
 
-            if (!_readyTask.Task.IsCompleted)
+            if (!this._readyTask.Task.IsCompleted)
             {
-                _readyTask.SetResult();
+                this._readyTask.SetResult();
             }
 
             return Task.CompletedTask;
@@ -245,7 +198,7 @@ namespace DreamBot.Services
 
         private async Task SlashCommandHandler(SocketSlashCommand command)
         {
-            if (_commandCallbacks.TryGetValue(command.CommandName, out Func<SocketSlashCommand, Task<string>> callback))
+            if (this._commandCallbacks.TryGetValue(command.CommandName, out Func<SocketSlashCommand, Task<string>> callback))
             {
                 string result = "You should never see this message";
 

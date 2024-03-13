@@ -4,6 +4,6 @@
     {
         public string ErrorMessage { get; set; } = string.Empty;
 
-        public bool Success => string.IsNullOrEmpty(ErrorMessage);
+        public bool Success => string.IsNullOrEmpty(this.ErrorMessage);
     }
 }

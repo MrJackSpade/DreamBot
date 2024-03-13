@@ -8,8 +8,8 @@
 
         public void Cancel()
         {
-            OnCancelled?.Invoke(this, null);
-            Cancelled = true;
+            this.OnCancelled?.Invoke(this, null);
+            this.Cancelled = true;
         }
     }
 }

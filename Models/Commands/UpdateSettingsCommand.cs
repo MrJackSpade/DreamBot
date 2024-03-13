@@ -17,5 +17,7 @@
         public int SquareHeight { get; set; }
 
         public int SquareWidth { get; set; }
+
+        public string DefaultStyle { get; set; }
     }
 }

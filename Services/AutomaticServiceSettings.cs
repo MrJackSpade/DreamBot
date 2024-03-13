@@ -4,8 +4,8 @@
     {
         public AutomaticServiceSettings(string host = "127.0.0.1", int port = 7860)
         {
-            Host = host;
-            Port = port;
+            this.Host = host;
+            this.Port = port;
         }
 
         public bool AggressiveOptimizations { get; internal set; }

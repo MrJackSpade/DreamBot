@@ -6,7 +6,7 @@ namespace DreamBot.Models
     {
         public QueuedTask(ulong userId)
         {
-            UserId = userId;
+            this.UserId = userId;
         }
 
         public Txt2ImgTask AutomaticTask { get; set; }

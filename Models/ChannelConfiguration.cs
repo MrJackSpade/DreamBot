@@ -2,8 +2,8 @@
 {
     public class ChannelConfiguration
     {
+        public string DefaultStyle { get; set; } = string.Empty;
         public string NegativePrompt { get; set; } = string.Empty;
-
         public string Prompt { get; set; } = string.Empty;
 
         public Dictionary<string, Resolution> Resolutions { get; set; } = new Dictionary<string, Resolution>()

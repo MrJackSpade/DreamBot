@@ -16,56 +16,53 @@ namespace DreamBot.Services
 
         private readonly ConcurrentQueue<Txt2ImgTask> _taskQueue = new();
 
+        private string InterruptUrl => $"http://{this._settings.Host}:{this._settings.Port}/sdapi/v1/interrupt";
+
+        private string ProgressUrl => $"http://{this._settings.Host}:{this._settings.Port}/sdapi/v1/progress";
+
+        private string Txt2ImgUrl => $"http://{this._settings.Host}:{this._settings.Port}/sdapi/v1/txt2img";
+
         public AutomaticService(AutomaticServiceSettings settings)
         {
-            _settings = settings;
-            _httpClient = new HttpClient()
+            this._settings = settings;
+            this._httpClient = new HttpClient()
             {
                 Timeout = TimeSpan.FromMinutes(30)
             };
 
-            _processingThread = new Thread(async () => await this.Process());
+            this._processingThread = new Thread(async () => await this.Process());
 
-            _processingThread.Start();
+            this._processingThread.Start();
         }
-
-        private string InterruptUrl => $"http://{_settings.Host}:{_settings.Port}/sdapi/v1/interrupt";
-
-        private string ProgressUrl => $"http://{_settings.Host}:{_settings.Port}/sdapi/v1/progress";
-
-        private string Txt2ImgUrl => $"http://{_settings.Host}:{_settings.Port}/sdapi/v1/txt2img";
 
         public QueueTxt2ImgTaskResult Txt2Image(Txt2Img settings, CancellationToken cancellationToken)
         {
             settings.AlwaysonScripts.NeverOOMIntegrated.Args =
             [
-                _settings.AggressiveOptimizations,
-                    _settings.AggressiveOptimizations
+                this._settings.AggressiveOptimizations,
+                this._settings.AggressiveOptimizations
             ];
 
             Txt2ImgTask toReturn = new(settings, cancellationToken);
 
-            _taskQueue.Enqueue(toReturn);
+            this._taskQueue.Enqueue(toReturn);
 
-            return new QueueTxt2ImgTaskResult(toReturn, _taskQueue.Count, DateTime.Now);
+            return new QueueTxt2ImgTaskResult(toReturn, this._taskQueue.Count, DateTime.Now);
         }
 
-        private async Task Interrupt()
-        {
-            _ = await _httpClient.PostAsync(InterruptUrl, new StringContent(""));
-        }
+        private async Task Interrupt() => _ = await this._httpClient.PostAsync(this.InterruptUrl, new StringContent(""));
 
         private async Task Process()
         {
             do
             {
-                if (_taskQueue.TryDequeue(out Txt2ImgTask? task))
+                if (this._taskQueue.TryDequeue(out Txt2ImgTask? task))
                 {
                     try
                     {
                         await this.WaitForReady();
 
-                        Task<Txt2ImgResponse> job = _httpClient.PostJson<Txt2ImgResponse>(Txt2ImgUrl, task.Request, task.CancellationToken);
+                        Task<Txt2ImgResponse> job = this._httpClient.PostJson<Txt2ImgResponse>(this.Txt2ImgUrl, task.Request, task.CancellationToken);
 
                         do
                         {
@@ -99,7 +96,7 @@ namespace DreamBot.Services
                             {
                                 try
                                 {
-                                    Txt2ImgProgress progress = await _httpClient.GetJson<Txt2ImgProgress>(ProgressUrl);
+                                    Txt2ImgProgress progress = await this._httpClient.GetJson<Txt2ImgProgress>(this.ProgressUrl);
 
                                     task.SetProgress(progress);
                                 }
@@ -124,7 +121,7 @@ namespace DreamBot.Services
         {
             do
             {
-                Txt2ImgProgress progress = await _httpClient.GetJson<Txt2ImgProgress>(ProgressUrl);
+                Txt2ImgProgress progress = await this._httpClient.GetJson<Txt2ImgProgress>(this.ProgressUrl);
 
                 if (progress.State.JobCount == 0)
                 {
