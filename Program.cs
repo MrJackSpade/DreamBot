@@ -195,6 +195,11 @@ namespace DreamBot
         {
             IMessage message = await args.UserMessage.GetOrDownloadAsync();
 
+            if(message is null)
+            {
+                return;
+            }
+
             if (message.Author.Id != _discordService.User.Id)
             {
                 return;
