@@ -1,5 +1,4 @@
-﻿using DreamBot.Models;
-using DreamBot.Models.Automatic;
+﻿using DreamBot.Models.Automatic;
 
 namespace DreamBot.Tasks
 {

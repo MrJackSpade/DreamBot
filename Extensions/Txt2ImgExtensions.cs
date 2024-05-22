@@ -1,9 +1,5 @@
 ﻿using DreamBot.Models.Automatic;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace DreamBot.Extensions
 {
@@ -12,10 +8,10 @@ namespace DreamBot.Extensions
         public static string ToDiscordString(this Txt2Img source, TimeSpan time)
         {
             StringBuilder sb = new();
-            sb.Append($"➕ `{source.Prompt}` ");
+            sb.Append($"✅ `{source.Prompt}` ");
             if (!string.IsNullOrWhiteSpace(source.NegativePrompt))
             {
-                sb.Append($"➖ `{source.NegativePrompt}` ");
+                sb.Append($"❌ `{source.NegativePrompt}` ");
             }
 
             sb.Append($"🌱 `{source.Seed}` ");

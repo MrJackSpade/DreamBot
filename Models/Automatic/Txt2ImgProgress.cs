@@ -1,9 +1,4 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DreamBot.Models.Automatic
 {
@@ -42,11 +37,17 @@ namespace DreamBot.Models.Automatic
         [JsonProperty("active")]
         public bool Active { get; set; }
 
+        [JsonProperty("Exception")]
+        public string Exception { get; set; }
+
         [JsonProperty("completed")]
         public bool Completed { get; set; }
 
         [JsonProperty("current_image")]
         public string? CurrentImage { get; set; }
+
+        [JsonProperty("images")]
+        public string[] Images { get; set; } = [];
 
         [JsonProperty("eta_relative")]
         public double EtaRelative { get; set; }

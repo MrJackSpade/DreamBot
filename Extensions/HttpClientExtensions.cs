@@ -12,11 +12,23 @@ namespace DreamBot.Extensions
 
         public static async Task<T> GetJson<T>(this HttpClient httpClient, string url, CancellationToken cancellationToken)
         {
-            var response = await httpClient.GetAsync(url, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            int tries = 5;
 
-            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-            return JsonConvert.DeserializeObject<T>(responseJson)!;
+            do
+            {
+                try
+                {
+                    var response = await httpClient.GetAsync(url, cancellationToken);
+                    response.EnsureSuccessStatusCode();
+
+                    var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+                    return JsonConvert.DeserializeObject<T>(responseJson)!;
+                }
+                catch (Exception) when (tries-- > 0)
+                {
+                    await Task.Delay(1000);
+                }
+            } while (true);
         }
 
         public static async Task<T> PostJson<T>(this HttpClient httpClient, string url, object payload)

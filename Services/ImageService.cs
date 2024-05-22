@@ -39,14 +39,13 @@ namespace DreamBot.Services
 
             // Save the modified image to a memory stream
             MemoryStream imageStream = new();
-            
+
             image.Save(imageStream, PngFormat.Instance);
 
             // Reset the memory stream position
             imageStream.Position = 0;
 
             return new DisposableFileAttachment(imageStream, new FileAttachment(imageStream, fileName));
-
         }
     }
 }

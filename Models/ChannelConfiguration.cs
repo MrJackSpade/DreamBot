@@ -8,8 +8,8 @@
 
         public Dictionary<string, Resolution> Resolutions { get; set; } = new Dictionary<string, Resolution>()
         {
-            [nameof(AspectRatio.Landscape)] = new Resolution(1280, 720),
-            [nameof(AspectRatio.Portrait)] = new Resolution(720, 1280),
+            [nameof(AspectRatio.Landscape)] = new Resolution(1344, 768),
+            [nameof(AspectRatio.Portrait)] = new Resolution(768, 1344),
             [nameof(AspectRatio.Square)] = new Resolution(1024, 1024),
         };
     }

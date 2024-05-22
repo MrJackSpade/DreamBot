@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using DreamBot.Attributes;
+using System.ComponentModel.DataAnnotations;
 
 namespace DreamBot.Models.Commands
 {
@@ -8,11 +9,21 @@ namespace DreamBot.Models.Commands
         [Display(Name = "aspect_ratio")]
         public AspectRatio AspectRatio { get; set; }
 
+        [Distinct]
         [Display(Name = "negative_prompt")]
-        public string NegativePrompt { get; set; } = string.Empty;
+        public List<string> NegativePrompt { get; set; } = [];
 
+        [Distinct]
         [Required]
-        public string Prompt { get; set; } = string.Empty;
+        public List<string> Prompt { get; set; } = [];
+
+        [Display(Name = "apply_default_styles", Description = "Apply default tags to increase quality")]
+        public bool ApplyDefaultStyles { get; set; } = true;
+
+        [Distinct]
+        public List<string> Lora { get; set; } = [];
+
+        public decimal LoraStrength { get; set; } = 1;
 
         public long Seed { get; set; } = -1;
     }

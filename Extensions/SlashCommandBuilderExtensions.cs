@@ -1,13 +1,9 @@
 ﻿using Discord;
+using DreamBot.Attributes;
 using DreamBot.Models;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DreamBot.Extensions
 {
@@ -68,7 +64,11 @@ namespace DreamBot.Extensions
                 optionBuilder = optionBuilder.WithRequired(true);
             }
 
-            if (property.PropertyType.IsEnum)
+            if (property.GetCustomAttribute<OptionTypeAttribute>() is OptionTypeAttribute ota)
+            {
+                optionBuilder.WithType(ota.Type);
+            }
+            else if (property.PropertyType.IsEnum)
             {
                 optionBuilder = optionBuilder.WithType(ApplicationCommandOptionType.String);
 
@@ -81,11 +81,14 @@ namespace DreamBot.Extensions
             {
                 optionBuilder = property.PropertyType.Name switch
                 {
-                    nameof(String) => optionBuilder.WithType(ApplicationCommandOptionType.String),
-                    nameof(Int32) or
+                    "List`1" or
+                    nameof(String) or
                     nameof(Int64) or
-                    nameof(UInt32) or
-                    nameof(UInt64) => optionBuilder.WithType(ApplicationCommandOptionType.Integer),
+                    nameof(UInt64) => optionBuilder.WithType(ApplicationCommandOptionType.String),
+                    nameof(Int32) or
+                    nameof(UInt32) => optionBuilder.WithType(ApplicationCommandOptionType.Integer),
+                    nameof(Decimal) => optionBuilder.WithType(ApplicationCommandOptionType.Number),
+                    nameof(Boolean) => optionBuilder.WithType(ApplicationCommandOptionType.Boolean),
                     _ => throw new NotImplementedException(),
                 };
             }

@@ -8,20 +8,25 @@ namespace DreamBot.Models
 {
     internal class GenerationPlaceholder
     {
+        public GenerationPlaceholder(RestUserMessage message)
+        {
+            Message = message;
+        }
+
         private string _lastContent = string.Empty;
 
         private string _lastPreview = string.Empty;
 
         public RestUserMessage Message { get; set; }
 
-        public async Task<bool> TryUpdate(string title, string body, string? base64Data)
+        public async Task<Guid> TryUpdate(string title, string body, string? base64Data)
         {
             string newContent = $"{title}\r\n{body}";
 
             if (!this.HasChanged(newContent, base64Data))
             {
                 Debug.WriteLine("Skipping update, no changes");
-                return false;
+                return Guid.Empty;
             }
             else
             {
@@ -30,8 +35,10 @@ namespace DreamBot.Models
 
             if (this.Message is null)
             {
-                return false;
+                return Guid.Empty;
             }
+
+            Guid toReturn = Guid.Empty;
 
             FileAttachment[] attachments = [];
 
@@ -41,9 +48,11 @@ namespace DreamBot.Models
             {
                 if (_lastPreview != base64Data)
                 {
+                    toReturn = Guid.NewGuid();
+
                     _lastPreview = base64Data;
 
-                    disposableFileAttachment = ImageService.CreateFileAttachment(base64Data, $"{Guid.NewGuid()}.png");
+                    disposableFileAttachment = ImageService.CreateFileAttachment(base64Data, $"{toReturn}.png");
 
                     attachments = [disposableFileAttachment.Attachment];
                 }
@@ -64,7 +73,7 @@ namespace DreamBot.Models
 
             disposableFileAttachment?.Dispose();
 
-            return true;
+            return toReturn;
         }
 
         private bool HasChanged(string content, string? base64Data) => _lastContent != content || _lastPreview != base64Data;

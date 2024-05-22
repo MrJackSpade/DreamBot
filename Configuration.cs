@@ -22,6 +22,18 @@ namespace DreamBot
 
     public class Configuration
     {
+        [JsonProperty("database_connection_string")]
+        public string DatabaseConnectionString { get; set; } = string.Empty;
+
+        [JsonProperty("notificationChannelId")]
+        public ulong NotificationChannelId { get; set; }
+
+        [JsonProperty("notificationRoleId")]
+        public ulong NotificationRoleId { get; set; }
+
+        [JsonProperty("notificationTriggers")]
+        public string[] NotificationTriggers { get; set; } = [];
+
         [JsonProperty("endpoints")]
         public AutomaticEndPoint[] Endpoints { get; set; } = [new AutomaticEndPoint()];
 

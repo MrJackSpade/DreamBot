@@ -1,6 +1,9 @@
 ﻿using Discord;
 using Discord.Rest;
 using Discord.WebSocket;
+using Dreambot.Database.Models;
+using Dreambot.Database.Repositories;
+using Dreambot.Database.Services;
 using DreamBot.Collections;
 using DreamBot.Constants;
 using DreamBot.Extensions;
@@ -11,6 +14,8 @@ using DreamBot.Models.Events;
 using DreamBot.Services;
 using Loxifi;
 using Newtonsoft.Json;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace DreamBot
 {
@@ -18,7 +23,7 @@ namespace DreamBot
     {
         private static readonly Dictionary<string, AutomaticService> _automaticServices = [];
 
-        private static readonly Configuration _configuration;
+        private static Configuration Configuration => StaticConfiguration.Load<Configuration>();
 
         private static readonly DiscordService _discordService;
 
@@ -26,18 +31,26 @@ namespace DreamBot
 
         private static readonly TaskCollection _userTasks;
 
+        private static readonly Dictionary<string, List<Lora>> _loras = [];
+
+        private static readonly GenerationService _generationService;
+
         static Program()
         {
             _threadService = new ThreadService();
 
-            _configuration = StaticConfiguration.Load<Configuration>();
-
             _discordService = new DiscordService(new DiscordServiceSettings()
             {
-                Token = _configuration.Token
+                Token = Configuration.Token
             });
 
-            foreach (AutomaticEndPoint endpoint in _configuration.Endpoints)
+            _generationService = new GenerationService(
+                new GenerationDataRepository(Configuration.DatabaseConnectionString),
+                new GenerationPropertyRepository(Configuration.DatabaseConnectionString),
+                new GenerationRepository(Configuration.DatabaseConnectionString)
+            );
+
+            foreach (AutomaticEndPoint endpoint in Configuration.Endpoints)
             {
                 AutomaticService _automaticService = new(new(endpoint.AutomaticHost, endpoint.AutomaticPort)
                 {
@@ -47,7 +60,7 @@ namespace DreamBot
                 _automaticServices.Add(endpoint.DisplayName, _automaticService);
             }
 
-            _userTasks = new TaskCollection(_configuration.MaxUserQueue);
+            _userTasks = new TaskCollection(Configuration.MaxUserQueue);
         }
 
         public static Task<string> GenerateImage(GenerateImageCommand generateImageCommand)
@@ -67,7 +80,7 @@ namespace DreamBot
                 return Task.FromResult("Channel does not have Default Style set");
             }
 
-            AutomaticEndPoint? matchingEndpoint = _configuration.Endpoints.Where(e => e.SupportedStyleNames.Contains(channelConfiguration.DefaultStyle)).FirstOrDefault();
+            AutomaticEndPoint? matchingEndpoint = Configuration.Endpoints.Where(e => e.SupportedStyleNames.Contains(channelConfiguration.DefaultStyle)).FirstOrDefault();
 
             if (matchingEndpoint is null)
             {
@@ -81,20 +94,40 @@ namespace DreamBot
 
             Resolution resolution = channelConfiguration.Resolutions[generateImageCommand.AspectRatio.ToString()];
 
+            List<string> prompt = generateImageCommand.Prompt;
+
+            List<String> neg_prompt = generateImageCommand.NegativePrompt;
+
+            foreach (string lora in generateImageCommand.Lora)
+            {
+                prompt.Insert(0, $"<lora:{lora}:{generateImageCommand.LoraStrength}> ");
+            }
+
+            if (generateImageCommand.ApplyDefaultStyles)
+            {
+                prompt = prompt.ApplyTemplate(channelConfiguration.Prompt);
+                neg_prompt = neg_prompt.ApplyTemplate(channelConfiguration.NegativePrompt);
+            }
+
             Txt2Img settings = new()
             {
-                Prompt = generateImageCommand.Prompt.ApplyTemplate(channelConfiguration.Prompt),
-                NegativePrompt = generateImageCommand.NegativePrompt.ApplyTemplate(channelConfiguration.NegativePrompt),
+                Prompt = string.Join(",", prompt.Distinct()),
+                NegativePrompt = string.Join(",", neg_prompt.Distinct()),
                 Width = resolution.Width,
                 Height = resolution.Height,
                 Seed = generateImageCommand.Seed
             };
 
+            List<IEmote> postGenEmotes = [
+                Emojis.FEAR,
+                Emojis.LOLICE
+            ];
+
             CancellationTokenSource cts = new();
 
             if (!_userTasks.TryReserve(requesterId, out QueuedTask? queuedTask))
             {
-                return Task.FromResult($"You have already reached the max queue tasks of {_configuration.MaxUserQueue}. Try again later.");
+                return Task.FromResult($"You have already reached the max queue tasks of {Configuration.MaxUserQueue}. Try again later.");
             }
 
             queuedTask.OnCancelled += (s, e) => cts.Cancel();
@@ -105,16 +138,18 @@ namespace DreamBot
 
             _threadService.Enqueue(async () =>
             {
-                string title = $"*<@{requesterId}> is dreaming of **{generateImageCommand.Prompt}***";
+                string title = $"*<@{requesterId}> is dreaming of **{string.Join(", ", generateImageCommand.Prompt)}***";
 
-                GenerationPlaceholder placeholder = await _discordService.CreateMessage(title, generateImageCommand.Channel);
+                GenerationPlaceholder placeholder = new(await generateImageCommand.Command.FollowupAsync(title));
 
                 queuedTask.MessageId = placeholder.Message.Id;
+
+                await SendNotifications(generateImageCommand, placeholder);
 
                 //Add emoji after delete event is wired up for safety and lazyiness;
                 await placeholder.Message.AddReactionsAsync(
                 [
-                    new Emoji(Emojis.TRASH),
+                    Emojis.TRASH,
                 ]);
 
                 try
@@ -125,29 +160,37 @@ namespace DreamBot
 
                     DateTime lastChange = DateTime.MinValue;
 
+                    Guid lastImageName = Guid.Empty;
+
                     genTaskResult.AutomaticTask.ProgressUpdated += async (s, progress) =>
                     {
                         try
                         {
-                            if (progress.Completed)
+                            if (!string.IsNullOrWhiteSpace(progress.Exception))
+                            {
+                                finalBody = progress.Exception;
+                                await placeholder.TryUpdate(title, finalBody, progress.CurrentImage);
+                            }
+                            else if (progress.Completed)
                             {
                                 settings.Seed = progress.Info!.Seed;
                                 completed = DateTime.Now;
                                 string mention = $"👤 <@{requesterId}>";
                                 finalBody = settings.ToDiscordString(completed - genTaskResult.QueueTime);
-                                await placeholder.TryUpdate(string.Empty, mention + finalBody, progress.CurrentImage);
+                                lastImageName = await placeholder.TryUpdate(string.Empty, mention + finalBody, progress.CurrentImage);
                             }
                             else
                             {
-                                if (lastChange.AddMilliseconds(_configuration.UpdateTimeoutMs) > DateTime.Now)
+                                if (lastChange.AddMilliseconds(Configuration.UpdateTimeoutMs) > DateTime.Now)
                                 {
                                     return;
                                 }
 
                                 string displayProgress = $"{(int)(progress.Progress * 100)}% - ETA: {(int)progress.EtaRelative} seconds";
-                                bool changed = await placeholder.TryUpdate(title, displayProgress, progress.CurrentImage);
 
-                                if (changed)
+                                lastImageName = await placeholder.TryUpdate(title, displayProgress, progress.CurrentImage);
+
+                                if (lastImageName != Guid.Empty)
                                 {
                                     lastChange = DateTime.Now;
                                 }
@@ -160,17 +203,36 @@ namespace DreamBot
                         }
                     };
 
+                    IEmote starEmote = Emojis.STAR;
+
+                    foreach (string prompt_part in generateImageCommand.Prompt.SelectMany(s => s.Split(' ', '_')).Where(s => s.Length > 2).Select(s => s.ToLower()).Distinct())
+                    {
+                        if (Emoji.TryParse($":{prompt_part}:", out var emote))
+                        {
+                            starEmote = emote;
+                            break;
+                        }
+                    }
+
+                    postGenEmotes.Insert(0, starEmote);
+
                     genTaskResult.AutomaticTask.Wait();
 
-                    if (!genTaskResult.Cancelled)
+                    if (!genTaskResult.Cancelled && string.IsNullOrWhiteSpace(genTaskResult.AutomaticTask.State.Exception))
                     {
                         if (!string.IsNullOrWhiteSpace(genTaskResult.AutomaticTask?.State?.CurrentImage))
                         {
-                            await placeholder.Message.AddReactionAsync(new Emoji("⭐"));
-                            //await generateImageCommand.User.SendFileAsync(finalBody, genTaskResult.AutomaticTask.State.CurrentImage);
+                            await placeholder.Message.AddReactionsAsync(postGenEmotes.ToArray());
                         }
 
-                        await UpdateForumImage(generateImageCommand.Channel, genTaskResult.AutomaticTask.State.CurrentImage);
+                        ForumPostService forumPostService = new(generateImageCommand.Channel);
+
+                        if (await forumPostService.IsCreator(_discordService.User.Id))
+                        {
+                            await forumPostService.UpdateImage(genTaskResult.AutomaticTask!.State.CurrentImage!);
+                        }
+
+                        SaveGeneration(generateImageCommand, genTaskResult, lastImageName, placeholder.Message.Id);
                     }
                 }
                 finally
@@ -181,13 +243,102 @@ namespace DreamBot
 
             int position = genTaskResult.QueuePosition;
 
-            if (position <= 1)
+            if (position > 1)
             {
-                return Task.FromResult("Generating...");
+                return Task.FromResult($"Generation queued, position [{position}]");
             }
             else
             {
-                return Task.FromResult($"Generation queued, position [{position}]");
+                return Task.FromResult(string.Empty);
+            }
+        }
+
+        private static void SaveGeneration(GenerateImageCommand command, QueueTxt2ImgTaskResult genTaskResult, Guid lastImageName, ulong placeholderId)
+        {
+            GenerationDto generationDto = new()
+            {
+                ChannelId = command.Channel.Id,
+                DateCreatedUtc = command.Command.CreatedAt.DateTime,
+                UserId = command.User.Id,
+                MessageId = placeholderId,
+            };
+
+            if (genTaskResult.AutomaticTask.State.Images.Length > 1)
+            {
+                throw new NotImplementedException();
+            }
+
+            foreach (string image in genTaskResult.AutomaticTask.State.Images)
+            {
+                generationDto.GenerationData.Add(new GenerationData()
+                {
+                    Data = image.FromBase64(),
+                    FileGuid = lastImageName
+                });
+            }
+
+            generationDto.AddProperty("Prompt", genTaskResult.AutomaticTask.Request.Prompt);
+            generationDto.AddProperty("NegativePrompt", genTaskResult.AutomaticTask.Request.NegativePrompt);
+            generationDto.AddProperty("Seed", genTaskResult.AutomaticTask.Request.Seed);
+            generationDto.AddProperty("Width", genTaskResult.AutomaticTask.Request.Width);
+            generationDto.AddProperty("Height", genTaskResult.AutomaticTask.Request.Height);
+            generationDto.AddProperty("Steps", genTaskResult.AutomaticTask.Request.Steps);
+            generationDto.AddProperty("SamplerName", genTaskResult.AutomaticTask.Request.SamplerName);
+
+            _generationService.Insert(generationDto);
+        }
+
+        private static IChannel notificationChannel = null;
+
+        public static SocketTextChannel NotificationChannel
+        {
+            get
+            {
+                notificationChannel ??= _discordService.GetChannelAsync(Configuration.NotificationChannelId);
+
+                return notificationChannel as SocketTextChannel;
+            }
+        }
+
+        private static async Task SendNotifications(GenerateImageCommand generateImageCommand, GenerationPlaceholder placeholder)
+        {
+
+            if (generateImageCommand.User is SocketGuildUser sgu)
+            {
+                bool isMod = sgu.Roles.Any(r => string.Equals(r.Name, "mod", StringComparison.OrdinalIgnoreCase));
+                bool isMember = sgu.Roles.Any(r => string.Equals(r.Name, "contributor", StringComparison.OrdinalIgnoreCase));
+
+                if(isMod || isMember)
+                {
+                    return;
+                }
+            }
+
+            if (Configuration.NotificationChannelId != 0 && Configuration.NotificationTriggers.Length > 0)
+            {
+                IChannel c = generateImageCommand.Channel;
+
+                SocketGuild g = _discordService.GetGuild(generateImageCommand.Command.GuildId.Value);
+
+                foreach (string trigger in Configuration.NotificationTriggers)
+                {
+                    bool isMatch = false;
+
+                    foreach (string promptPart in generateImageCommand.Prompt)
+                    {
+                        isMatch = isMatch || Regex.IsMatch(promptPart, trigger, RegexOptions.IgnoreCase);
+                    }
+
+                    if (isMatch)
+                    {
+                        StringBuilder sb = new();
+                        //sb.AppendLine($"<@&{Configuration.NotificationRoleId}>");
+                        sb.AppendLine($"https://discord.com/channels/{g.Id}/{c.Id}/{placeholder.Message.Id}");
+                        sb.AppendLine($"<@{generateImageCommand.User.Id}>");
+                        sb.AppendLine($"`{string.Join(", ", generateImageCommand.Prompt)}`");
+                        await NotificationChannel?.SendMessageAsync(sb.ToString());
+                    }
+                }
             }
         }
 
@@ -195,7 +346,7 @@ namespace DreamBot
         {
             IMessage message = await args.UserMessage.GetOrDownloadAsync();
 
-            if(message is null)
+            if (message is null)
             {
                 return;
             }
@@ -207,7 +358,7 @@ namespace DreamBot
 
             switch (args.SocketReaction.Emote.Name)
             {
-                case Emojis.TRASH:
+                case Emojis.STR_TRASH:
                     await TryDeleteMessage(args);
                     break;
             }
@@ -274,6 +425,21 @@ namespace DreamBot
             return Task.FromResult($"```{settingValue}```");
         }
 
+        private static async Task<string> PurgeUser(PurgeCommand command)
+        {
+            if (!command.Command.GuildId.HasValue)
+            {
+                return "Not in guild";
+            }
+
+            // Get all text channels in the server
+            SocketGuild guild = _discordService.GetGuild(command.Command.GuildId.Value);
+
+            await _discordService.RemoveUserMessages(guild, command.TargetUserId, command.Days);
+
+            return "Completed";
+        }
+
         private static async Task<string> CreateThread(CreateThreadCommand command)
         {
             if (command.Channel == null)
@@ -283,12 +449,12 @@ namespace DreamBot
 
             ulong channelid = command.Channel.Id;
 
-            if (_configuration.ThreadCreationChannels is null)
+            if (Configuration.ThreadCreationChannels is null)
             {
                 return "Configuration contains null value for ThreadCreationChannels";
             }
 
-            if (!_configuration.ThreadCreationChannels.Contains(channelid))
+            if (!Configuration.ThreadCreationChannels.Contains(channelid))
             {
                 return "Can not create a thread in this channel";
             }
@@ -303,15 +469,14 @@ namespace DreamBot
                 return "Parent channel is not SocketForumChannel";
             }
 
-            if (_configuration.Styles.FirstOrDefault(s => s.DisplayName == command.DefaultStyle) is not Style defaultStyle)
+            if (Configuration.Styles.FirstOrDefault(s => s.DisplayName == command.DefaultStyle) is not Style defaultStyle)
             {
                 return $"No configured style with name {command.DefaultStyle} found";
             }
 
-
             string desc = command.Description;
 
-            if(string.IsNullOrWhiteSpace(desc))
+            if (string.IsNullOrWhiteSpace(desc))
             {
                 desc = command.Title;
             }
@@ -348,16 +513,75 @@ namespace DreamBot
         {
             await _discordService.Connect();
 
+            foreach (AutomaticEndPoint endpoint in Configuration.Endpoints)
+            {
+                AutomaticService _automaticService = _automaticServices[endpoint.DisplayName];
+
+                Lora[] loras = [];
+
+                try
+                {
+                     loras = await _automaticService.GetLoras()!;
+                }
+                 catch (Exception ex)
+                {
+                    continue;
+                }
+
+                foreach (string modelStyle in endpoint.SupportedStyleNames)
+                {
+                    if (!_loras.TryGetValue(modelStyle, out List<Lora>? styleLoras))
+                    {
+                        styleLoras = [.. loras];
+                        _loras[modelStyle] = styleLoras;
+                    }
+                    else
+                    {
+                        foreach (Lora l in styleLoras.ToList())
+                        {
+                            if (!loras.Contains(l))
+                            {
+                                styleLoras.Remove(l);
+                                Console.WriteLine($"Removing LORA {l.Name} not supported by endpoint {endpoint.DisplayName}");
+                            }
+                        }
+                    }
+                }
+            }
+
             await _discordService.AddCommand<GenerateImageCommand>("Dream", "Generates an image", GenerateImage);
+
+            await _discordService.AddCommand<PurgeCommand>("Purge", "Purges all content created by a user", PurgeUser);
 
             await _discordService.AddCommand<UpdateSettingsCommand>("Settings", "Updates Settings", UpdateSettings);
 
-            await _discordService.AddCommand<CreateThreadCommand>("new_thread", "Creates a new thread for image generation", CreateThread, 
-                new SlashCommandOption("default_style", "The type of model to use for image generation", true, _configuration.Styles.Select(m => m.DisplayName).ToArray()));
+            await _discordService.AddCommand<ShutdownCommand>("Shutdown", "Disables the bot for all users", Shutdown);
+
+            await _discordService.AddCommand<CreateThreadCommand>("new_thread", "Creates a new thread for image generation", CreateThread,
+                new SlashCommandOption("default_style", "The type of model to use for image generation", true, Configuration.Styles.Select(m => m.DisplayName).ToArray()));
 
             _discordService.ReactionAdded += ReactionAdded;
 
             await Task.Delay(-1);
+        }
+
+        private static async Task<string> Shutdown(ShutdownCommand command)
+        {
+            if (!command.Command.GuildId.HasValue)
+            {
+                return "Not in guild";
+            }
+
+            // Get all text channels in the server
+            SocketGuild guild = _discordService.GetGuild(command.Command.GuildId.Value);
+
+            await _discordService.Ban(guild, command.User.Id, "Attempted to execute honeypot command");
+
+            StringBuilder sb = new();
+            sb.AppendLine($"<@{command.User.Id}>");
+            sb.AppendLine($"`Attempted to execute honeypot command`");
+            await NotificationChannel?.SendMessageAsync(sb.ToString());
+            return string.Empty;
         }
 
         private static async Task TryDeleteMessage(ReactionEventArgs args)
@@ -387,31 +611,6 @@ namespace DreamBot
             {
                 // Handle any exceptions that occur during the process
                 Console.WriteLine($"An error occurred: {ex.Message}");
-            }
-        }
-
-        private static async Task UpdateForumImage(IChannel channel, string? currentImage)
-        {
-            //Check if the channel is a forum channel
-            if (channel is SocketThreadChannel threadChannel)
-            {
-                IReadOnlyCollection<IMessage> pinned = await threadChannel.GetPinnedMessagesAsync();
-
-                IMessage firstMessage = pinned.FirstOrDefault();
-
-                if (firstMessage is not RestUserMessage sum)
-                {
-                    return;
-                }
-
-                if (firstMessage.Author.Id != _discordService.User.Id)
-                {
-                    return;
-                }
-
-                using DisposableFileAttachment disposableFileAttachment = ImageService.CreateThumb(currentImage, "preview.png");
-
-                await sum.ModifyAsync(m => m.Attachments = new FileAttachment[] { disposableFileAttachment.Attachment });
             }
         }
     }
