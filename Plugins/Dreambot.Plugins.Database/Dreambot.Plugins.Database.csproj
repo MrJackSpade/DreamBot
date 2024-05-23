@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Folder Include="Interfaces\" />
+		<Folder Include="Entities\" />
+		<Folder Include="Repositories\" />
+	</ItemGroup>
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.0" />
+		<None Include="$(PkgMicrosoft_Data_SqlClient)\lib\net8.0\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\DreamBot.Plugins\DreamBot.Plugins.csproj" />
+		<ProjectReference Include="..\..\DreamBot.Shared\DreamBot.Shared.csproj" />
+	</ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="xcopy &quot;$(ProjectDir)bin\Debug\net8.0\win-x64\*.*&quot; &quot;$(ProjectDir)..\..\..\DreamBot\DreamBot\bin\Debug\net8.0\Plugins\&quot; /E /Y /I" />
+	</Target>
+
+</Project>

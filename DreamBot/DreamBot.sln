@@ -1,0 +1,62 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34622.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DreamBot", "DreamBot.csproj", "{65A2D4A8-9DDD-40F3-AA23-FC4EDAB8A242}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{9D58611F-BC20-4513-84DE-42A07098A02D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dreambot.Plugins", "..\Dreambot.Plugins\Dreambot.Plugins.csproj", "{3E8E565E-3D1C-4995-8F6E-7F8CA6EC645A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamBot.Shared", "..\DreamBot.Shared\DreamBot.Shared.csproj", "{D14B641F-D2B4-4D8B-84EB-AC4C629EF2B3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dreambot.Plugins.Database", "..\Plugins\Dreambot.Plugins.Database\Dreambot.Plugins.Database.csproj", "{57F5C794-C605-415F-AE76-C0AB6B68C3AA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamBot.Plugins.Notifications", "..\Plugins\DreamBot.Plugins.Notifications\DreamBot.Plugins.Notifications.csproj", "{6512B586-463E-4028-9E3D-36CDBAAA5185}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamBot.Plugins.Honeypot", "..\Plugins\DreamBot.Plugins.Honeypot\DreamBot.Plugins.Honeypot.csproj", "{611C5A1C-E9A8-4803-96A6-AC4D36D15177}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{65A2D4A8-9DDD-40F3-AA23-FC4EDAB8A242}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65A2D4A8-9DDD-40F3-AA23-FC4EDAB8A242}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{65A2D4A8-9DDD-40F3-AA23-FC4EDAB8A242}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{65A2D4A8-9DDD-40F3-AA23-FC4EDAB8A242}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E8E565E-3D1C-4995-8F6E-7F8CA6EC645A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E8E565E-3D1C-4995-8F6E-7F8CA6EC645A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E8E565E-3D1C-4995-8F6E-7F8CA6EC645A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E8E565E-3D1C-4995-8F6E-7F8CA6EC645A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D14B641F-D2B4-4D8B-84EB-AC4C629EF2B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D14B641F-D2B4-4D8B-84EB-AC4C629EF2B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D14B641F-D2B4-4D8B-84EB-AC4C629EF2B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D14B641F-D2B4-4D8B-84EB-AC4C629EF2B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{57F5C794-C605-415F-AE76-C0AB6B68C3AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57F5C794-C605-415F-AE76-C0AB6B68C3AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57F5C794-C605-415F-AE76-C0AB6B68C3AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57F5C794-C605-415F-AE76-C0AB6B68C3AA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6512B586-463E-4028-9E3D-36CDBAAA5185}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6512B586-463E-4028-9E3D-36CDBAAA5185}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6512B586-463E-4028-9E3D-36CDBAAA5185}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6512B586-463E-4028-9E3D-36CDBAAA5185}.Release|Any CPU.Build.0 = Release|Any CPU
+		{611C5A1C-E9A8-4803-96A6-AC4D36D15177}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{611C5A1C-E9A8-4803-96A6-AC4D36D15177}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{611C5A1C-E9A8-4803-96A6-AC4D36D15177}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{611C5A1C-E9A8-4803-96A6-AC4D36D15177}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{57F5C794-C605-415F-AE76-C0AB6B68C3AA} = {9D58611F-BC20-4513-84DE-42A07098A02D}
+		{6512B586-463E-4028-9E3D-36CDBAAA5185} = {9D58611F-BC20-4513-84DE-42A07098A02D}
+		{611C5A1C-E9A8-4803-96A6-AC4D36D15177} = {9D58611F-BC20-4513-84DE-42A07098A02D}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B89FECDB-1D1A-405C-A843-54A9D639CFD1}
+	EndGlobalSection
+EndGlobal
