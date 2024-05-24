@@ -16,7 +16,7 @@ namespace DreamBot.Services
 {
     public class DiscordService : IDiscordService
     {
-        public EventHandler<Txt2ImgProgress> ProgressUpdated;
+        public EventHandler<TextToImageProgress> ProgressUpdated;
 
         public Func<ReactionEventArgs, Task> ReactionAdded;
 

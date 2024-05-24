@@ -14,7 +14,7 @@ namespace DreamBot.Services
 
         private readonly AutomaticServiceSettings _settings;
 
-        private readonly ConcurrentQueue<Txt2ImgTask> _taskQueue = new();
+        private readonly ConcurrentQueue<TextToImageTask> _taskQueue = new();
 
         public AutomaticService(AutomaticServiceSettings settings)
         {
@@ -47,7 +47,7 @@ namespace DreamBot.Services
             return await _httpClient.GetJson<Lora[]>(GetLorasUrl);
         }
 
-        public QueueTxt2ImgTaskResult Txt2Image(Txt2Img settings, CancellationToken cancellationToken)
+        public TextToImageTaskQueueResult Txt2Image(TextToImageRequest settings, CancellationToken cancellationToken)
         {
             settings.AlwaysonScripts.NeverOOMIntegrated.Args =
             [
@@ -55,11 +55,11 @@ namespace DreamBot.Services
                 this._settings.AggressiveOptimizations
             ];
 
-            Txt2ImgTask toReturn = new(settings, cancellationToken);
+            TextToImageTask toReturn = new(settings, cancellationToken);
 
             this._taskQueue.Enqueue(toReturn);
 
-            return new QueueTxt2ImgTaskResult(toReturn, this._taskQueue.Count, DateTime.Now);
+            return new TextToImageTaskQueueResult(toReturn, this._taskQueue.Count, DateTime.Now);
         }
 
         private async Task Interrupt() => _ = await this._httpClient.PostAsync(this.InterruptUrl, new StringContent(""));
@@ -68,13 +68,13 @@ namespace DreamBot.Services
         {
             do
             {
-                if (this._taskQueue.TryDequeue(out Txt2ImgTask? task))
+                if (this._taskQueue.TryDequeue(out TextToImageTask? task))
                 {
                     try
                     {
                         await this.WaitForReady();
 
-                        Task<Txt2ImgResponse> job = this._httpClient.PostJson<Txt2ImgResponse>(this.Txt2ImgUrl, task.Request, task.CancellationToken);
+                        Task<TextToImageResponse> job = this._httpClient.PostJson<TextToImageResponse>(this.Txt2ImgUrl, task.Request, task.CancellationToken);
 
                         do
                         {
@@ -88,9 +88,9 @@ namespace DreamBot.Services
 
                             if (job.IsCompleted)
                             {
-                                Txt2ImgResponse response = await job;
+                                TextToImageResponse response = await job;
 
-                                Txt2ImgProgress progress = new()
+                                TextToImageProgress progress = new()
                                 {
                                     Active = false,
                                     Completed = true,
@@ -98,7 +98,7 @@ namespace DreamBot.Services
                                     Images = response.Images,
                                     EtaRelative = 0,
                                     Progress = 1,
-                                    Info = JsonConvert.DeserializeObject<Txt2ImgResponseInfo>(response.Info)
+                                    Info = JsonConvert.DeserializeObject<TextToImageResponseInfo>(response.Info)
                                 };
 
                                 task.SetProgress(progress);
@@ -109,7 +109,7 @@ namespace DreamBot.Services
                             {
                                 try
                                 {
-                                    Txt2ImgProgress progress = await this._httpClient.GetJson<Txt2ImgProgress>(this.ProgressUrl);
+                                    TextToImageProgress progress = await this._httpClient.GetJson<TextToImageProgress>(this.ProgressUrl);
 
                                     task.SetProgress(progress);
                                 }
@@ -126,7 +126,7 @@ namespace DreamBot.Services
                     }
                     catch (Exception ex)
                     {
-                        task.SetProgress(new Txt2ImgProgress()
+                        task.SetProgress(new TextToImageProgress()
                         {
                             Active = false,
                             Completed = true,
@@ -145,7 +145,7 @@ namespace DreamBot.Services
         {
             do
             {
-                Txt2ImgProgress progress = await this._httpClient.GetJson<Txt2ImgProgress>(this.ProgressUrl);
+                TextToImageProgress progress = await this._httpClient.GetJson<TextToImageProgress>(this.ProgressUrl);
 
                 if (progress.State.JobCount == 0)
                 {

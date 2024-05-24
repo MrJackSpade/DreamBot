@@ -6,7 +6,7 @@ namespace DreamBot.Models.Automatic
     {
     }
 
-    public class Txt2ImgResponseInfo
+    public class TextToImageResponseInfo
     {
         [JsonProperty("all_negative_prompts")]
         public List<string> AllNegativePrompts { get; set; } = [];

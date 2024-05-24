@@ -1,13 +1,14 @@
 ﻿using Discord.WebSocket;
 using DreamBot.Attributes;
+using DreamBot.Models;
 using DreamBot.Shared.Models;
 using System.ComponentModel.DataAnnotations;
 
-namespace DreamBot.Models.Commands
+namespace DreamBot.Plugins.Dream
 {
-    public class GenerateImageCommand : BaseCommand
+    public class DreamCommand : BaseCommand
     {
-        public GenerateImageCommand(SocketSlashCommand command) : base(command)
+        public DreamCommand(SocketSlashCommand command) : base(command)
         {
         }
 

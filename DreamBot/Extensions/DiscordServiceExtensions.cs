@@ -1,5 +1,4 @@
-﻿using DreamBot.Models;
-using DreamBot.Services;
+﻿using DreamBot.Services;
 using DreamBot.Shared.Models;
 using System;
 using System.Collections.Generic;

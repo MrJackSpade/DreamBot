@@ -19,13 +19,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Plugins\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Update="Plugins\README.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\Commands\" />
+    <Folder Include="Models\Events\" />
+    <Folder Include="Tasks\" />
   </ItemGroup>
 
 </Project>

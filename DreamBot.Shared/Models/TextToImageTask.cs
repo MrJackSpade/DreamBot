@@ -2,15 +2,15 @@
 
 namespace DreamBot.Tasks
 {
-    public class Txt2ImgTask
+    public class TextToImageTask
     {
         public ManualResetEvent _completed = new(false);
 
-        public EventHandler<Txt2ImgProgress> Completed;
+        public EventHandler<TextToImageProgress> Completed;
 
-        public EventHandler<Txt2ImgProgress> ProgressUpdated;
+        public EventHandler<TextToImageProgress> ProgressUpdated;
 
-        public Txt2ImgTask(Txt2Img request, CancellationToken cancellationToken)
+        public TextToImageTask(TextToImageRequest request, CancellationToken cancellationToken)
         {
             Request = request;
             CancellationToken = cancellationToken;
@@ -19,11 +19,11 @@ namespace DreamBot.Tasks
 
         public CancellationToken CancellationToken { get; private set; }
 
-        public Txt2Img Request { get; private set; }
+        public TextToImageRequest Request { get; private set; }
 
-        public Txt2ImgProgress State { get; private set; }
+        public TextToImageProgress State { get; private set; }
 
-        public void SetProgress(Txt2ImgProgress state)
+        public void SetProgress(TextToImageProgress state)
         {
             if (State is null || State != state)
             {

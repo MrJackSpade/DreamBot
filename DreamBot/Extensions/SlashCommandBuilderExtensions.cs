@@ -1,6 +1,6 @@
 ﻿using Discord;
 using DreamBot.Attributes;
-using DreamBot.Models;
+using DreamBot.Shared.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Runtime.Serialization;

@@ -3,7 +3,7 @@ using DreamBot.Shared.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
-namespace DreamBot.Models.Commands
+namespace DreamBot.Plugins.NewThread
 {
     public class CreateThreadCommand : BaseCommand
     {

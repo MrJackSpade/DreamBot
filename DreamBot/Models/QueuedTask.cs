@@ -9,7 +9,7 @@ namespace DreamBot.Models
             this.UserId = userId;
         }
 
-        public Txt2ImgTask AutomaticTask { get; set; }
+        public TextToImageTask AutomaticTask { get; set; }
 
         public ulong MessageId { get; set; }
 

@@ -7,15 +7,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DreamBot", "DreamBot.csproj
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{9D58611F-BC20-4513-84DE-42A07098A02D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dreambot.Plugins", "..\Dreambot.Plugins\Dreambot.Plugins.csproj", "{3E8E565E-3D1C-4995-8F6E-7F8CA6EC645A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dreambot.Plugins", "..\Dreambot.Plugins\Dreambot.Plugins.csproj", "{3E8E565E-3D1C-4995-8F6E-7F8CA6EC645A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamBot.Shared", "..\DreamBot.Shared\DreamBot.Shared.csproj", "{D14B641F-D2B4-4D8B-84EB-AC4C629EF2B3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DreamBot.Shared", "..\DreamBot.Shared\DreamBot.Shared.csproj", "{D14B641F-D2B4-4D8B-84EB-AC4C629EF2B3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dreambot.Plugins.Database", "..\Plugins\Dreambot.Plugins.Database\Dreambot.Plugins.Database.csproj", "{57F5C794-C605-415F-AE76-C0AB6B68C3AA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DreamBot.Plugins.Database", "..\Plugins\Dreambot.Plugins.Database\DreamBot.Plugins.Database.csproj", "{57F5C794-C605-415F-AE76-C0AB6B68C3AA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamBot.Plugins.Notifications", "..\Plugins\DreamBot.Plugins.Notifications\DreamBot.Plugins.Notifications.csproj", "{6512B586-463E-4028-9E3D-36CDBAAA5185}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DreamBot.Plugins.Notifications", "..\Plugins\DreamBot.Plugins.Notifications\DreamBot.Plugins.Notifications.csproj", "{6512B586-463E-4028-9E3D-36CDBAAA5185}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamBot.Plugins.Honeypot", "..\Plugins\DreamBot.Plugins.Honeypot\DreamBot.Plugins.Honeypot.csproj", "{611C5A1C-E9A8-4803-96A6-AC4D36D15177}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DreamBot.Plugins.Honeypot", "..\Plugins\DreamBot.Plugins.Honeypot\DreamBot.Plugins.Honeypot.csproj", "{611C5A1C-E9A8-4803-96A6-AC4D36D15177}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamBot.Plugins.Lolice", "..\Plugins\DreamBot.Plugins.Lolice\DreamBot.Plugins.Lolice.csproj", "{E96E4935-1E52-482E-9FD7-1A3BE3A82005}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dreambot.Plugins.Star", "..\Plugins\Dreambot.Plugins.Star\Dreambot.Plugins.Star.csproj", "{831A977A-A9FA-4208-9176-A6E1D50D4150}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +51,14 @@ Global
 		{611C5A1C-E9A8-4803-96A6-AC4D36D15177}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{611C5A1C-E9A8-4803-96A6-AC4D36D15177}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{611C5A1C-E9A8-4803-96A6-AC4D36D15177}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E96E4935-1E52-482E-9FD7-1A3BE3A82005}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E96E4935-1E52-482E-9FD7-1A3BE3A82005}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E96E4935-1E52-482E-9FD7-1A3BE3A82005}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E96E4935-1E52-482E-9FD7-1A3BE3A82005}.Release|Any CPU.Build.0 = Release|Any CPU
+		{831A977A-A9FA-4208-9176-A6E1D50D4150}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{831A977A-A9FA-4208-9176-A6E1D50D4150}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{831A977A-A9FA-4208-9176-A6E1D50D4150}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{831A977A-A9FA-4208-9176-A6E1D50D4150}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -55,6 +67,8 @@ Global
 		{57F5C794-C605-415F-AE76-C0AB6B68C3AA} = {9D58611F-BC20-4513-84DE-42A07098A02D}
 		{6512B586-463E-4028-9E3D-36CDBAAA5185} = {9D58611F-BC20-4513-84DE-42A07098A02D}
 		{611C5A1C-E9A8-4803-96A6-AC4D36D15177} = {9D58611F-BC20-4513-84DE-42A07098A02D}
+		{E96E4935-1E52-482E-9FD7-1A3BE3A82005} = {9D58611F-BC20-4513-84DE-42A07098A02D}
+		{831A977A-A9FA-4208-9176-A6E1D50D4150} = {9D58611F-BC20-4513-84DE-42A07098A02D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B89FECDB-1D1A-405C-A843-54A9D639CFD1}

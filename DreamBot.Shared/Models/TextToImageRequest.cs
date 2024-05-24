@@ -307,7 +307,7 @@ namespace DreamBot.Models.Automatic
         public List<bool> Args { get; set; } = [false];
     }
 
-    public class Txt2Img
+    public class TextToImageRequest
     {
         [JsonProperty("alwayson_scripts")]
         public AlwaysonScripts AlwaysonScripts { get; set; } = new AlwaysonScripts();

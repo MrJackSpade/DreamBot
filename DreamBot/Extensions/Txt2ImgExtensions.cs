@@ -5,7 +5,7 @@ namespace DreamBot.Extensions
 {
     public static class Txt2ImgExtensions
     {
-        public static string ToDiscordString(this Txt2Img source, TimeSpan time)
+        public static string ToDiscordString(this TextToImageRequest source, TimeSpan time)
         {
             StringBuilder sb = new();
             sb.Append($"✅ `{source.Prompt}` ");

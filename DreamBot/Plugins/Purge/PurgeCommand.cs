@@ -2,7 +2,7 @@
 using DreamBot.Shared.Models;
 using System.ComponentModel.DataAnnotations;
 
-namespace DreamBot.Models.Commands
+namespace DreamBot.Plugins.Purge
 {
     public class PurgeCommand : BaseCommand
     {

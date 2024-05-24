@@ -33,5 +33,25 @@ namespace DreamBot.Shared.Utils
 
             return o.Value;
         }
+
+        public static T[] NotNullOrEmpty<T>(T[]? o, [CallerMemberName] string memberName = "")
+        {
+            if (o == null || o.Length == 0)
+            {
+                throw new ArgumentNullException(memberName);
+            }
+
+            return o;
+        }
+
+        public static string NotNullOrWhiteSpace(string? o, [CallerMemberName] string memberName = "")
+        {
+            if (string.IsNullOrWhiteSpace(o))
+            {
+                throw new ArgumentNullException(memberName);
+            }
+
+            return o;
+        }
     }
 }

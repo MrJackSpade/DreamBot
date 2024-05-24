@@ -5,12 +5,12 @@ namespace DreamBot.Services
 {
     internal static class ConfigurationService
     {
+        private const string CHANNEL_CONFIG_PATH = "Configurations\\DreamBot\\Channels";
+
         private static readonly object _lock = new();
 
-        private const string CHANNEL_CONFIG_PATH = "Configurations\\DreamBot\\Channels";
         static ConfigurationService()
         {
-
             if (!Directory.Exists(CHANNEL_CONFIG_PATH))
             {
                 Directory.CreateDirectory(CHANNEL_CONFIG_PATH);

@@ -6,16 +6,21 @@ namespace DreamBot.Plugins.EventArgs
     {
         private readonly string _module;
 
-        public InitializationEventArgs(string module, ILogger logger, IDiscordService discordService)
+        public InitializationEventArgs(string module, IPluginService pluginService, ILogger logger, IDiscordService discordService)
         {
             _module = module;
             Logger = logger;
             DiscordService = discordService;
+            PluginService = pluginService;
         }
+
+        public IReadOnlyDictionary<string, IAutomaticService> AutomaticServices { get; set; }
 
         public IDiscordService DiscordService { get; private set; }
 
         public ILogger Logger { get; private set; }
+
+        public IPluginService PluginService { get; set; }
 
         public T LoadConfiguration<T>() where T : class, new()
         {

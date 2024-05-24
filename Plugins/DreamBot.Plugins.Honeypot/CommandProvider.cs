@@ -3,6 +3,7 @@ using Discord.WebSocket;
 using Dreambot.Plugins.Interfaces;
 using DreamBot.Plugins.EventArgs;
 using DreamBot.Shared.Interfaces;
+using DreamBot.Shared.Models;
 using DreamBot.Shared.Utils;
 using System.Text;
 
@@ -22,7 +23,9 @@ namespace DreamBot.Plugins.Honeypot
 
         public string Description => "Disables the bot for all users";
 
-        public async Task<string> OnCommand(ShutdownCommand command)
+        public SlashCommandOption[] SlashCommandOptions => throw new NotImplementedException();
+
+        public async Task<CommandResult> OnCommand(ShutdownCommand command)
         {
             command = Ensure.NotNull(command);
             ulong guildId = Ensure.NotNull(command.Command?.GuildId);
@@ -43,7 +46,7 @@ namespace DreamBot.Plugins.Honeypot
                 await NotificationChannel.SendMessageAsync(sb.ToString());
             }
 
-            return string.Empty;
+            return CommandResult.Success();
         }
 
         public async Task OnInitialize(InitializationEventArgs args)

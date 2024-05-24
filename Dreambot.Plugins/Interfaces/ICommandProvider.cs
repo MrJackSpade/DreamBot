@@ -1,4 +1,5 @@
 ﻿using DreamBot.Plugins.Interfaces;
+using DreamBot.Shared.Models;
 
 namespace Dreambot.Plugins.Interfaces
 {
@@ -7,10 +8,12 @@ namespace Dreambot.Plugins.Interfaces
         string Command { get; }
 
         string Description { get; }
+
+        SlashCommandOption[] SlashCommandOptions { get; }
     }
 
     public interface ICommandProvider<in TCommand> : ICommandProvider
     {
-        Task<string> OnCommand(TCommand command);
+        Task<CommandResult> OnCommand(TCommand command);
     }
 }

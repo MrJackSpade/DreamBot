@@ -1,15 +1,15 @@
 ﻿using Discord;
 
-namespace DreamBot.Models
+namespace DreamBot.Shared.Models
 {
     public class SlashCommandOption
     {
         public SlashCommandOption(string name, string description, bool required, params string[] choices)
         {
-            this.Name = name.ToLower();
-            this.Description = description;
-            this.Required = required;
-            this.Choices = choices;
+            Name = name.ToLower();
+            Description = description;
+            Required = required;
+            Choices = choices;
         }
 
         public string[] Choices { get; set; }

@@ -1,7 +1,7 @@
 ﻿using Discord.WebSocket;
 using DreamBot.Shared.Models;
 
-namespace DreamBot.Models.Commands
+namespace DreamBot.Plugins.UpdateSettings
 {
     public class UpdateSettingsCommand : BaseCommand
     {

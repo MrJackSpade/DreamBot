@@ -2,7 +2,7 @@
 
 namespace DreamBot.Models.Automatic
 {
-    public class Txt2ImgResponse
+    public class TextToImageResponse
     {
         [JsonProperty("images")]
         public string[] Images { get; set; } = [];
@@ -10,6 +10,4 @@ namespace DreamBot.Models.Automatic
         [JsonProperty("info")]
         public string Info { get; set; } = "";
     }
-
-    // The Txt2ImgParameters class remains the same as before
 }

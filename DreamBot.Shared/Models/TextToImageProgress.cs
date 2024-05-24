@@ -32,7 +32,7 @@ namespace DreamBot.Models.Automatic
         public bool StoppingGeneration { get; set; }
     }
 
-    public class Txt2ImgProgress
+    public class TextToImageProgress
     {
         [JsonProperty("active")]
         public bool Active { get; set; }
@@ -53,7 +53,7 @@ namespace DreamBot.Models.Automatic
         public string[] Images { get; set; } = [];
 
         [JsonProperty("info")]
-        public Txt2ImgResponseInfo? Info { get; set; } = null;
+        public TextToImageResponseInfo? Info { get; set; } = null;
 
         [JsonProperty("progress")]
         public double Progress { get; set; }
