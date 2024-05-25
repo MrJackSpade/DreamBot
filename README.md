@@ -1,7 +1,7 @@
 # DreamBot - Stable Diffusion Discord Bot
 
 ## Overview
-DreamBot is a Discord bot that integrates with Automatic1111-Forge's Stable Diffusion API to generate images based on user prompts. The bot is currently in alpha and encourages users to try it out and report any bugs or questions. DreamBot is written in C# and utilizes a plugin architecture, allowing for additional modules to be installed when created.
+DreamBot is a Discord bot that integrates with Automatic1111-Forge's Stable Diffusion API to generate images based on user prompts. The bot is currently in alpha and users are encouraged to try it out and report any bugs or questions. DreamBot is written in C# and utilizes a plugin architecture, allowing for additional modules to be developed and installed.
 
 ## Setup
 1. Download the zip file for Win64 machines. (Or build, if that doesn't exist yet)
