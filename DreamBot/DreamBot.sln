@@ -17,9 +17,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DreamBot.Plugins.Notificati
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DreamBot.Plugins.Honeypot", "..\Plugins\DreamBot.Plugins.Honeypot\DreamBot.Plugins.Honeypot.csproj", "{611C5A1C-E9A8-4803-96A6-AC4D36D15177}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamBot.Plugins.Lolice", "..\Plugins\DreamBot.Plugins.Lolice\DreamBot.Plugins.Lolice.csproj", "{E96E4935-1E52-482E-9FD7-1A3BE3A82005}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DreamBot.Plugins.Lolice", "..\Plugins\DreamBot.Plugins.Lolice\DreamBot.Plugins.Lolice.csproj", "{E96E4935-1E52-482E-9FD7-1A3BE3A82005}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dreambot.Plugins.Star", "..\Plugins\Dreambot.Plugins.Star\Dreambot.Plugins.Star.csproj", "{831A977A-A9FA-4208-9176-A6E1D50D4150}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dreambot.Plugins.Star", "..\Plugins\Dreambot.Plugins.Star\Dreambot.Plugins.Star.csproj", "{831A977A-A9FA-4208-9176-A6E1D50D4150}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{4A77EF7E-F866-4ACC-AC98-4F7923938A36}"
+	ProjectSection(SolutionItems) = preProject
+		..\README.md = ..\README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

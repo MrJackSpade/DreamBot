@@ -1,0 +1,23 @@
+{
+  "endpoints": [
+    {
+      "aggressive_optimizations": false,
+      "automatic_host": "127.0.0.1",
+      "automatic_port": 7860,
+      "display_name": "Default",
+      "supported_style_names": [
+        "Default"
+      ]
+    }
+  ],
+  "max_user_queue": 1,
+  "styles": [
+    {
+      "display_name": "Default",
+      "negative_prompt": "{0}",
+      "positive_prompt": "{0}"
+    }
+  ],
+  "token": "",
+  "update_timeout_ms": 3000
+}
