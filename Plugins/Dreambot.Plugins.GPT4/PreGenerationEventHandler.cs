@@ -4,6 +4,7 @@ using DreamBot.Plugins.GPT4.Models;
 using DreamBot.Plugins.Interfaces;
 using DreamBot.Shared.Exceptions;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -43,18 +44,33 @@ namespace DreamBot.Plugins.GPT4
 			}
 		}
 
+		private ConcurrentDictionary<string, string> _cachedResults = new ConcurrentDictionary<string, string>();
+
 		public async Task OnPreGeneration(PreGenerationEventArgs args)
 		{
+	
 			if (_configuration?.ApiKey != null)
 			{
-				OpenAIClient openAIClient = new(_configuration.ApiKey, SystemPrompt);
+				
+				string result = null;
 
-				Message response = await openAIClient.GetResponseAsync(args.GenerationParameters.Prompt.Text);
+				string prompt = args.GenerationParameters.Prompt.Text;
+
+				if(!_cachedResults.TryGetValue(prompt, out result))
+				{
+					OpenAIClient openAIClient = new(_configuration.ApiKey, SystemPrompt);
+
+					Message response = await openAIClient.GetResponseAsync(prompt);
+
+					result = response.Content;
+
+					_cachedResults.TryAdd(prompt, result);
+				}
 
 				string notificationMessage = $"""
 				```
 				{args.GenerationParameters.Prompt.Text}
-				{response.Content}
+				{result}
 				```
 				""";
 

@@ -139,6 +139,7 @@ namespace DreamBot.Plugins.Dream
                     _completed = DateTime.Now;
                     string mention = $"👤 <@{_requesterId}>";
                     _finalBody = _settings.ToDiscordString(_completed - _genTaskResult.QueueTime);
+
                     Guid nextGuid = await _placeholder.TryUpdate(string.Empty, mention + _finalBody, progress.CurrentImage);
 
                     if(nextGuid != Guid.Empty)
@@ -154,12 +155,12 @@ namespace DreamBot.Plugins.Dream
                     }
 
                     string displayProgress = $"{(int)(progress.Progress * 100)}% - ETA: {(int)progress.EtaRelative} seconds";
+                    Guid nextGuid = await _placeholder.TryUpdate(_title, displayProgress, progress.CurrentImage);
 
-                    LastImageName = await _placeholder.TryUpdate(_title, displayProgress, progress.CurrentImage);
-
-                    if (LastImageName != Guid.Empty)
+                    if (nextGuid != Guid.Empty)
                     {
                         _lastChange = DateTime.Now;
+                        LastImageName = nextGuid;
                     }
                 }
             }
