@@ -14,332 +14,335 @@ using System.Reflection;
 
 namespace DreamBot.Services
 {
-    public class DiscordService : IDiscordService
-    {
-        public EventHandler<TextToImageProgress> ProgressUpdated;
+	public class DiscordService : IDiscordService
+	{
+		public EventHandler<TextToImageProgress> ProgressUpdated;
 
-        public Func<ReactionEventArgs, Task> ReactionAdded;
+		public Func<ReactionEventArgs, Task> ReactionAdded;
 
-        private readonly Dictionary<string, Func<SocketSlashCommand, Task<string>>> _commandCallbacks = [];
+		private readonly Dictionary<string, Func<SocketSlashCommand, Task<CommandResult>>> _commandCallbacks = [];
 
-        private readonly DiscordSocketClient _discordClient;
+		private readonly DiscordSocketClient _discordClient;
 
-        private readonly TaskCompletionSource _readyTask = new();
+		private readonly TaskCompletionSource _readyTask = new();
 
-        private readonly DiscordServiceSettings _settings;
+		private readonly DiscordServiceSettings _settings;
 
-        public DiscordService(DiscordServiceSettings settings)
-        {
-            this._settings = settings;
-            this._discordClient = new DiscordSocketClient();
-            this._discordClient.Log += this.DiscordClient_Log;
-            this._discordClient.Ready += this.DiscordClient_Ready;
-            this._discordClient.SlashCommandExecuted += this.SlashCommandHandler;
-            this._discordClient.ReactionAdded += async (cache, channel, reaction) =>
-            {
-                if (this.ReactionAdded != null)
-                {
-                    await this.ReactionAdded.Invoke(new ReactionEventArgs(cache, channel, reaction));
-                }
-            };
-        }
+		public DiscordService(DiscordServiceSettings settings)
+		{
+			this._settings = settings;
+			this._discordClient = new DiscordSocketClient();
+			this._discordClient.Log += this.DiscordClient_Log;
+			this._discordClient.Ready += this.DiscordClient_Ready;
+			this._discordClient.SlashCommandExecuted += this.SlashCommandHandler;
+			this._discordClient.ReactionAdded += async (cache, channel, reaction) =>
+			{
+				if (this.ReactionAdded != null)
+				{
+					await this.ReactionAdded.Invoke(new ReactionEventArgs(cache, channel, reaction));
+				}
+			};
+		}
 
-        public IUser User { get; set; }
+		public IUser User { get; set; }
 
-        public async Task AddCommand(string command, string description, Type t, Func<BaseCommand, Task<string>> action, params SlashCommandOption[] slashCommandOptions)
-        {
-            command = command.ToLower();
+		public async Task AddCommand(string command, string description, Type t, Func<BaseCommand, Task<CommandResult>> action, params SlashCommandOption[] slashCommandOptions)
+		{
+			command = command.ToLower();
 
-            this._commandCallbacks.Add(command, (c) => action.Invoke(CastType(c, t)));
+			this._commandCallbacks.Add(command, (c) => action.Invoke(CastType(c, t)));
 
-            await this.AddCommand(command, description, t, slashCommandOptions);
-        }
+			await this.AddCommand(command, description, t, slashCommandOptions);
+		}
 
-        public async Task BanAsync(IGuild guild, ulong id, string reason)
-        {
-            await guild.AddBanAsync(id, reason: reason);
-        }
+		public async Task BanAsync(IGuild guild, ulong id, string reason)
+		{
+			await guild.AddBanAsync(id, reason: reason);
+		}
 
-        public async Task Connect()
-        {
-            await this._discordClient.LoginAsync(TokenType.Bot, this._settings.Token);
-            await this._discordClient.StartAsync();
-            await this._readyTask.Task;
-            this.User = this._discordClient.CurrentUser;
-        }
+		public async Task Connect()
+		{
+			await this._discordClient.LoginAsync(TokenType.Bot, this._settings.Token);
+			await this._discordClient.StartAsync();
+			await this._readyTask.Task;
+			this.User = this._discordClient.CurrentUser;
+		}
 
-        public async Task<GenerationPlaceholder> CreateMessage(string title, ulong channel, AllowedMentions? allowedMentions = null, MessageFlags flags = MessageFlags.None)
-        {
-            IChannel socketChannel = await this._discordClient.GetChannelAsync(channel);
+		public async Task<GenerationPlaceholder> CreateMessage(string title, ulong channel, AllowedMentions? allowedMentions = null, MessageFlags flags = MessageFlags.None)
+		{
+			IChannel socketChannel = await this._discordClient.GetChannelAsync(channel);
 
-            return await this.CreateMessage(title, socketChannel, allowedMentions, flags);
-        }
+			return await this.CreateMessage(title, socketChannel, allowedMentions, flags);
+		}
 
-        public async Task<GenerationPlaceholder> CreateMessage(string title, IChannel socketChannel, AllowedMentions? allowedMentions = null, MessageFlags flags = MessageFlags.None)
-        {
-            if (socketChannel is SocketTextChannel stc)
-            {
-                RestUserMessage message = await stc.SendMessageAsync(title, allowedMentions: allowedMentions, flags: flags);
+		public async Task<GenerationPlaceholder> CreateMessage(string title, IChannel socketChannel, AllowedMentions? allowedMentions = null, MessageFlags flags = MessageFlags.None)
+		{
+			if (socketChannel is SocketTextChannel stc)
+			{
+				RestUserMessage message = await stc.SendMessageAsync(title, allowedMentions: allowedMentions, flags: flags);
 
-                return new GenerationPlaceholder(message);
-            }
+				return new GenerationPlaceholder(message);
+			}
 
-            throw new Exception();
-        }
+			throw new Exception();
+		}
 
-        public ValueTask<IChannel?> GetChannelAsync(ulong channelId)
-        {
-            return _discordClient.GetChannelAsync(channelId);
-        }
+		public ValueTask<IChannel?> GetChannelAsync(ulong channelId)
+		{
+			return _discordClient.GetChannelAsync(channelId);
+		}
 
-        public ValueTask<SocketGuild> GetGuildAsync(ulong guildId)
-        {
-            return ValueTask.FromResult(_discordClient.GetGuild(guildId));
-        }
+		public ValueTask<SocketGuild> GetGuildAsync(ulong guildId)
+		{
+			return ValueTask.FromResult(_discordClient.GetGuild(guildId));
+		}
 
-        public async Task RemoveUserMessages(SocketGuild guild, ulong userId, int days = 7)
-        {
-            // Get all text channels in the server
-            var channels = guild.TextChannels;
+		public async Task RemoveUserMessages(SocketGuild guild, ulong userId, int days = 7)
+		{
+			// Get all text channels in the server
+			var channels = guild.TextChannels;
 
-            foreach (var channel in channels)
-            {
-                Console.WriteLine($"Purging user {userId} from channel {channel.Name}");
-                await this.RemoveUserMessagesFromChannel(channel, userId, days);
-            }
+			foreach (var channel in channels)
+			{
+				Console.WriteLine($"Purging user {userId} from channel {channel.Name}");
+				await this.RemoveUserMessagesFromChannel(channel, userId, days);
+			}
 
-            Console.WriteLine($"Purging user {userId} completed");
-        }
+			Console.WriteLine($"Purging user {userId} completed");
+		}
 
-        public async Task RemoveUserMessages(SocketGuild guild, IUser user, int days = 7)
-        {
-            await this.RemoveUserMessages(guild, user.Id, days);
-        }
+		public async Task RemoveUserMessages(SocketGuild guild, IUser user, int days = 7)
+		{
+			await this.RemoveUserMessages(guild, user.Id, days);
+		}
 
-        private static BaseCommand CastType(SocketSlashCommand source, Type t)
-        {
-            if (!typeof(BaseCommand).IsAssignableFrom(t))
-            {
-                throw new ArgumentException("Cast type must inherit from base command");
-            }
+		public async Task RemoveUserMessagesFromChannel(SocketTextChannel channel, ulong userid, int days = 7)
+		{
+			// Calculate the timestamp for one week ago
+			var oneWeekAgo = DateTime.UtcNow.AddDays(0 - days);
 
-            BaseCommand payload = (BaseCommand)Activator.CreateInstance(t, [source])!;
+			// Get the initial batch of messages in the channel
+			await Task.Delay(500);
+			var messages = await channel.GetMessagesAsync(limit: 100).FlattenAsync();
 
-            Dictionary<string, PropertyInfo> propertyDict = [];
+			while (messages.Any())
+			{
+				// Find messages authored by the user or mentioning the user within the last week
+				var userMessages = messages.OfType<RestUserMessage>().Where(msg =>
+					msg.Author.Id == userid ||
+					msg.MentionedUsers.Any(mentionedUser => mentionedUser.Id == userid))
+					.Where(msg => msg.Timestamp.UtcDateTime >= oneWeekAgo);
 
-            foreach (PropertyInfo pi in t.GetProperties())
-            {
-                string name = pi.Name.ToLower();
+				// Delete each matching message
+				foreach (var message in userMessages)
+				{
+					Console.WriteLine($"Deleting Message {message.Id}: {message.Content}");
+					await Task.Delay(500);
+					await message.DeleteAsync();
+				}
 
-                if (pi.GetCustomAttribute<DisplayAttribute>() is DisplayAttribute d)
-                {
-                    if (!string.IsNullOrWhiteSpace(d.Name))
-                    {
-                        name = d.Name.ToLower();
-                    }
-                }
+				// Check if the oldest message in the current batch is older than one week
+				var oldestMessage = messages.MinBy(msg => msg.Timestamp);
 
-                propertyDict.Add(name, pi);
-            }
+				if (oldestMessage != null)
+				{
+					if (oldestMessage.Timestamp.UtcDateTime < oneWeekAgo)
+					{
+						break;
+					}
 
-            foreach (SocketSlashCommandDataOption? option in source.Data.Options)
-            {
-                try
-                {
-                    if (propertyDict.TryGetValue(option.Name, out PropertyInfo prop))
-                    {
-                        if (prop.PropertyType == typeof(List<string>))
-                        {
-                            bool isDistinct = prop.GetCustomAttribute<DistinctAttribute>() is not null;
+					// Get the next batch of messages in the channel
+					await Task.Delay(500);
+					messages = await channel.GetMessagesAsync(oldestMessage, Direction.Before, limit: 100).FlattenAsync();
+				}
+			}
+		}
 
-                            string v = option.Value.ToString();
+		private static BaseCommand CastType(SocketSlashCommand source, Type t)
+		{
+			if (!typeof(BaseCommand).IsAssignableFrom(t))
+			{
+				throw new ArgumentException("Cast type must inherit from base command");
+			}
 
-                            List<string> values = [];
+			BaseCommand payload = (BaseCommand)Activator.CreateInstance(t, [source])!;
 
-                            if (!string.IsNullOrWhiteSpace(v))
-                            {
-                                foreach (string part in v.Split(',', ';').Select(l => l.Trim()))
-                                {
-                                    values.Add(part);
-                                }
+			Dictionary<string, PropertyInfo> propertyDict = [];
 
-                                if (isDistinct)
-                                {
-                                    values = values.Distinct().ToList();
-                                }
+			foreach (PropertyInfo pi in t.GetProperties())
+			{
+				string name = pi.Name.ToLower();
 
-                                prop.SetValue(payload, values);
-                            }
-                        }
-                        else if (prop.PropertyType == typeof(bool))
-                        {
-                            string b = option.Value.ToString().ToLower();
+				if (pi.GetCustomAttribute<DisplayAttribute>() is DisplayAttribute d)
+				{
+					if (!string.IsNullOrWhiteSpace(d.Name))
+					{
+						name = d.Name.ToLower();
+					}
+				}
 
-                            prop.SetValue(payload, b != "false");
-                        }
-                        else if (prop.PropertyType.IsEnum)
-                        {
-                            if (!Enum.TryParse(prop.PropertyType, option.Value.ToString(), out object value))
-                            {
-                                throw new CommandPropertyValidationException(option.Name, $"'{option.Value}' is not a valid value");
-                            }
-                            else
-                            {
-                                prop.SetValue(payload, value);
-                            }
-                        }
-                        else if (option.Value.GetType() == prop.PropertyType)
-                        {
-                            try
-                            {
-                                prop.SetValue(payload, option.Value);
-                            }
-                            catch (Exception ex)
-                            {
-                                throw new CommandPropertyValidationException(option.Name, $"Could not assign value '{option.Value}' type '{option.Value?.GetType()}' to type '{prop.PropertyType}'");
-                            }
-                        }
-                        else
-                        {
-                            try
-                            {
-                                prop.SetValue(payload, Convert.ChangeType(option.Value, prop.PropertyType));
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine(ex.ToString());
-                                throw new CommandPropertyValidationException(option.Name, $"Could not cast value '{option.Value}' to type '{prop.PropertyType}'");
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                }
-            }
+				propertyDict.Add(name, pi);
+			}
 
-            return payload;
-        }
+			foreach (SocketSlashCommandDataOption? option in source.Data.Options)
+			{
+				try
+				{
+					if (propertyDict.TryGetValue(option.Name, out PropertyInfo prop))
+					{
+						if (prop.PropertyType == typeof(List<string>))
+						{
+							bool isDistinct = prop.GetCustomAttribute<DistinctAttribute>() is not null;
 
-        private async Task AddCommand(string command, string description, Type t, params SlashCommandOption[] slashCommandOptions)
-        {
-            SlashCommandBuilder commandBuilder = new SlashCommandBuilder()
-                .WithName(command)
-                .WithDescription(description);
+							string v = option.Value.ToString();
 
-            slashCommandOptions ??= [];
+							List<string> values = [];
 
-            foreach (SlashCommandOption option in slashCommandOptions)
-            {
-                commandBuilder.AddOption(option);
-            }
+							if (!string.IsNullOrWhiteSpace(v))
+							{
+								foreach (string part in v.Split(',', ';').Select(l => l.Trim()))
+								{
+									values.Add(part);
+								}
 
-            foreach (PropertyInfo property in t.GetProperties())
-            {
-                commandBuilder.TryAddOption(property);
-            }
+								if (isDistinct)
+								{
+									values = values.Distinct().ToList();
+								}
 
-            foreach (SocketGuild? Guild in this._discordClient.Guilds)
-            {
-                await Guild.CreateApplicationCommandAsync(commandBuilder.Build());
-            }
-        }
+								prop.SetValue(payload, values);
+							}
+						}
+						else if (prop.PropertyType == typeof(bool))
+						{
+							string b = option.Value.ToString().ToLower();
 
-        private Task DiscordClient_Log(LogMessage arg)
-        {
-            Console.WriteLine(arg.Message);
-            return Task.CompletedTask;
-        }
+							prop.SetValue(payload, b != "false");
+						}
+						else if (prop.PropertyType.IsEnum)
+						{
+							if (!Enum.TryParse(prop.PropertyType, option.Value.ToString(), out object value))
+							{
+								throw new CommandPropertyValidationException(option.Name, $"'{option.Value}' is not a valid value");
+							}
+							else
+							{
+								prop.SetValue(payload, value);
+							}
+						}
+						else if (option.Value.GetType() == prop.PropertyType)
+						{
+							try
+							{
+								prop.SetValue(payload, option.Value);
+							}
+							catch (Exception ex)
+							{
+								throw new CommandPropertyValidationException(option.Name, $"Could not assign value '{option.Value}' type '{option.Value?.GetType()}' to type '{prop.PropertyType}'");
+							}
+						}
+						else
+						{
+							try
+							{
+								prop.SetValue(payload, Convert.ChangeType(option.Value, prop.PropertyType));
+							}
+							catch (Exception ex)
+							{
+								Console.WriteLine(ex.ToString());
+								throw new CommandPropertyValidationException(option.Name, $"Could not cast value '{option.Value}' to type '{prop.PropertyType}'");
+							}
+						}
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex);
+				}
+			}
 
-        private Task DiscordClient_Ready()
-        {
-            Console.WriteLine($"Connected as {this._discordClient.CurrentUser}");
+			return payload;
+		}
 
-            if (!this._readyTask.Task.IsCompleted)
-            {
-                this._readyTask.SetResult();
-            }
+		private async Task AddCommand(string command, string description, Type t, params SlashCommandOption[] slashCommandOptions)
+		{
+			SlashCommandBuilder commandBuilder = new SlashCommandBuilder()
+				.WithName(command)
+				.WithDescription(description);
 
-            return Task.CompletedTask;
-        }
+			slashCommandOptions ??= [];
 
-        private async Task RemoveUserMessagesFromChannel(SocketTextChannel channel, ulong userid, int days = 7)
-        {
-            // Calculate the timestamp for one week ago
-            var oneWeekAgo = DateTime.UtcNow.AddDays(0 - days);
+			foreach (SlashCommandOption option in slashCommandOptions)
+			{
+				commandBuilder.AddOption(option);
+			}
 
-            // Get the initial batch of messages in the channel
-            await Task.Delay(500);
-            var messages = await channel.GetMessagesAsync(limit: 100).FlattenAsync();
+			foreach (PropertyInfo property in t.GetProperties())
+			{
+				commandBuilder.TryAddOption(property);
+			}
 
-            while (messages.Any())
-            {
-                // Find messages authored by the user or mentioning the user within the last week
-                var userMessages = messages.OfType<RestUserMessage>().Where(msg =>
-                    msg.Author.Id == userid ||
-                    msg.MentionedUsers.Any(mentionedUser => mentionedUser.Id == userid))
-                    .Where(msg => msg.Timestamp.UtcDateTime >= oneWeekAgo);
+			foreach (SocketGuild? Guild in this._discordClient.Guilds)
+			{
+				await Guild.CreateApplicationCommandAsync(commandBuilder.Build());
+			}
+		}
 
-                // Delete each matching message
-                foreach (var message in userMessages)
-                {
-                    Console.WriteLine($"Deleting Message {message.Id}: {message.Content}");
-                    await Task.Delay(500);
-                    await message.DeleteAsync();
-                }
+		private Task DiscordClient_Log(LogMessage arg)
+		{
+			Console.WriteLine(arg.Message);
+			return Task.CompletedTask;
+		}
 
-                // Check if the oldest message in the current batch is older than one week
-                var oldestMessage = messages.MinBy(msg => msg.Timestamp);
+		private Task DiscordClient_Ready()
+		{
+			Console.WriteLine($"Connected as {this._discordClient.CurrentUser}");
 
-                if (oldestMessage != null)
-                {
-                    if (oldestMessage.Timestamp.UtcDateTime < oneWeekAgo)
-                    {
-                        break;
-                    }
+			if (!this._readyTask.Task.IsCompleted)
+			{
+				this._readyTask.SetResult();
+			}
 
-                    // Get the next batch of messages in the channel
-                    await Task.Delay(500);
-                    messages = await channel.GetMessagesAsync(oldestMessage, Direction.Before, limit: 100).FlattenAsync();
-                }
-            }
-        }
+			return Task.CompletedTask;
+		}
 
-        private async Task SlashCommandHandler(SocketSlashCommand command)
-        {
-            if (this._commandCallbacks.TryGetValue(command.CommandName, out Func<SocketSlashCommand, Task<string>> callback))
-            {
-                string result = "You should never see this message";
+		private async Task SlashCommandHandler(SocketSlashCommand command)
+		{
+			if (this._commandCallbacks.TryGetValue(command.CommandName, out Func<SocketSlashCommand, Task<CommandResult>> callback))
+			{
+				CommandResult result = CommandResult.Error("You should never see this message");
 
-                await command.DeferAsync();
+				await command.DeferAsync();
 
-                try
-                {
-                    result = await callback.Invoke(command);
-                }
-                catch (CommandPropertyValidationException cex)
-                {
-                    result = $"{cex.PropertyName}: {cex.Message}";
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                    result = ex.Message;
-                }
+				try
+				{
+					result = await callback.Invoke(command);
+				}
+				catch (CommandPropertyValidationException cex)
+				{
+					result = CommandResult.Error($"{cex.PropertyName}: {cex.Message}");
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex);
+					result = CommandResult.Error(ex.Message);
+				}
 
-                if (!string.IsNullOrWhiteSpace(result))
-                {
-                    try
-                    {
-                        await command.FollowupAsync(result, ephemeral: true);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex);
-                    }
-                }
-            }
-        }
-    }
+				if (!result.IsSuccess)
+				{
+					try
+					{
+						await command.FollowupAsync(result.Message, ephemeral: true);
+					}
+					catch (Exception ex)
+					{
+						Console.WriteLine(ex);
+					}
+				} else if(!string.IsNullOrWhiteSpace(result.Message)) 
+				{
+					await command.FollowupAsync(result.Message);
+				}
+			}
+		}
+	}
 }

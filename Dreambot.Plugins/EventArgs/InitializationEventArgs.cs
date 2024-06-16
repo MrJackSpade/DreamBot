@@ -14,8 +14,6 @@ namespace DreamBot.Plugins.EventArgs
             PluginService = pluginService;
         }
 
-        public IReadOnlyDictionary<string, IAutomaticService> AutomaticServices { get; set; }
-
         public IDiscordService DiscordService { get; private set; }
 
         public ILogger Logger { get; private set; }

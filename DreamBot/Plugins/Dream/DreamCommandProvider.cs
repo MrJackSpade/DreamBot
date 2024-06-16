@@ -2,157 +2,193 @@
 using Dreambot.Plugins.Interfaces;
 using DreamBot.Collections;
 using DreamBot.Constants;
-using DreamBot.Extensions;
-using DreamBot.Models;
-using DreamBot.Models.Automatic;
 using DreamBot.Models.Events;
 using DreamBot.Plugins.EventArgs;
 using DreamBot.Services;
 using DreamBot.Shared.Interfaces;
 using DreamBot.Shared.Models;
-using System;
+using DreamBot.Shared.Utils;
 
 namespace DreamBot.Plugins.Dream
 {
-    internal class DreamCommandProvider : ICommandProvider<DreamCommand>, IReactionHandler
-    {
-        private readonly ThreadService _threadService = new();
+	internal class DreamCommandProvider : ICommandProvider<DreamCommand>, IReactionHandler
+	{
+		private readonly ThreadService _threadService = new();
 
-        private IReadOnlyDictionary<string, IAutomaticService>? _automaticServices;
+		private readonly Dictionary<string, IAutomaticService> _automaticServices = new();
 
-        private Configuration? _configuration;
+		private Configuration? _configuration;
 
-        private IDiscordService? _discordService;
+		private IDiscordService? _discordService;
 
-        private IPluginService? _pluginService;
+		private IPluginService? _pluginService;
 
-        private TaskCollection? _userTasks;
+		private TaskCollection? _userTasks;
 
-        public string Command => "Dream";
+		public string Command => "Dream";
 
-        public string Description => "Generates an image";
+		public string Description => "Generates an image";
 
-        public string[] HandledReactions => [Emojis.STR_TRASH];
+		public string[] HandledReactions => [Emojis.STR_TRASH];
 
-        public SlashCommandOption[] SlashCommandOptions => throw new NotImplementedException();
+		public SlashCommandOption[] SlashCommandOptions => Array.Empty<SlashCommandOption>();
 
-        public Task<CommandResult> OnCommand(DreamCommand generateImageCommand)
-        {
-            SingleGenerationTask singleGenerationTask = new (generateImageCommand, _discordService, _configuration, _userTasks, _automaticServices);
+		public async Task<CommandResult> OnCommand(DreamCommand generateImageCommand)
+		{
+			SingleGenerationTask singleGenerationTask = new(generateImageCommand, _discordService, _configuration, _userTasks, _automaticServices);
 
-            if(!singleGenerationTask.TryQueue(out string? errorMessage))
-            {
-                return CommandResult.ErrorAsync(errorMessage!);
-            }
+			if (!singleGenerationTask.TryQueue(out string? errorMessage))
+			{
+				return CommandResult.Error(errorMessage!);
+			}
 
-            singleGenerationTask.OnCompleted += this.SendPostGenerationEvent;
+			try
+			{
+				await this.SendPreGenerationEvent(singleGenerationTask, generateImageCommand.Channel);
+			} catch (Exception ex)
+			{
+				return CommandResult.Error(ex.Message);
+			}
 
-            _threadService.Enqueue(singleGenerationTask.GenerateImage);
+			singleGenerationTask.OnCompleted += this.SendPostGenerationEvent;
 
-            int position = singleGenerationTask.QueuePosition;
+			_threadService.Enqueue(singleGenerationTask.GenerateImage);
 
-            if (position > 1)
-            {
-                return CommandResult.ErrorAsync($"Generation queued, position [{position}]");
-            }
-            else
-            {
-                return CommandResult.SuccessAsync();
-            }
-        }
+			int position = singleGenerationTask.QueuePosition;
 
-        public Task OnInitialize(InitializationEventArgs args)
-        {
-            _configuration = args.LoadConfiguration<Configuration>();
+			if (position > 1)
+			{
+				return CommandResult.Error($"Generation queued, position [{position}]");
+			}
+			else
+			{
+				return CommandResult.Success();
+			}
+		}
 
-            _userTasks = new TaskCollection(_configuration.MaxUserQueue);
+		public Task OnInitialize(InitializationEventArgs args)
+		{
+			_configuration = args.LoadConfiguration<Configuration>();
 
-            _pluginService = args.PluginService;
+			_userTasks = new TaskCollection(_configuration.MaxUserQueue);
 
-            _automaticServices = args.AutomaticServices;
+			_pluginService = args.PluginService;
 
-            _discordService = args.DiscordService;
+			_discordService = args.DiscordService;
 
-            return Task.CompletedTask;
-        }
+			foreach (AutomaticEndPoint endpoint in _configuration.Endpoints)
+			{
+				AutomaticService _automaticService = new (new(endpoint.AutomaticHost, endpoint.AutomaticPort)
+				{
+					AggressiveOptimizations = endpoint.AggressiveOptimizations
+				});
 
-        public async Task OnReaction(ReactionEventArgs args)
-        {
-            IMessage message = await args.UserMessage.GetOrDownloadAsync();
+				_automaticServices.Add(endpoint.DisplayName, _automaticService);
+			}
 
-            if (message is null)
-            {
-                return;
-            }
+			return Task.CompletedTask;
+		}
 
-            if (message.Author.Id != _discordService.User.Id)
-            {
-                return;
-            }
+		public async Task OnReaction(ReactionEventArgs args)
+		{
+			IMessage message = await args.UserMessage.GetOrDownloadAsync();
 
-            switch (args.SocketReaction.Emote.Name)
-            {
-                case Emojis.STR_TRASH:
-                    await this.TryDeleteMessage(args);
-                    break;
-            }
-        }
+			if (message is null)
+			{
+				return;
+			}
 
-        private async void SendPostGenerationEvent(object s, SingleGenerationTask sgt)
-        {
-            PostGenerationEventArgs postGenerationEventArgs = new()
-            {
-                Message = sgt.PlaceHolderMessage,
-                DateCreated = sgt.CreatedAt,
-                Images =
-                [
-                    new GeneratedImage(sgt.LastImageName, sgt.ImageResult)
-                ],
-                Guild = await _discordService.GetGuildAsync(sgt.GuildId),
-                User = sgt.User,
-                GenerationParameters = new GenerationParameters()
-                {
-                    Height = sgt.Height,
-                    Width = sgt.Width,
-                    Seed = sgt.Seed,
-                    Prompt = sgt.Prompt,
-                    NegativePrompt = sgt.NegativePrompt,
-                    SamplerName = sgt.SamplerName,
-                    Steps = sgt.Steps
-                }
-            };
+			if (message.Author.Id != _discordService.User.Id)
+			{
+				return;
+			}
 
-            _pluginService.PostGenerationEvent(postGenerationEventArgs);
-        }
+			switch (args.SocketReaction.Emote.Name)
+			{
+				case Emojis.STR_TRASH:
+					await this.TryDeleteMessage(args);
+					break;
+			}
+		}
 
-        private async Task TryDeleteMessage(ReactionEventArgs args)
-        {
-            try
-            {
-                // Get the full message from the cache or fetch it from the API
-                IUserMessage message = await args.UserMessage.GetOrDownloadAsync();
+		private async Task SendPreGenerationEvent(SingleGenerationTask sgt, IChannel channel)
+		{
+			PreGenerationEventArgs postGenerationEventArgs = new()
+			{
+				DateCreated = sgt.CreatedAt,
+				Channel = channel,
+				Guild = await _discordService.GetGuildAsync(sgt.GuildId),
+				User = sgt.User,
+				GenerationParameters = new GenerationParameters()
+				{
+					Height = sgt.Height,
+					Width = sgt.Width,
+					Seed = sgt.Seed,
+					Prompt = sgt.Prompt,
+					NegativePrompt = sgt.NegativePrompt,
+					SamplerName = sgt.SamplerName,
+					Steps = sgt.Steps
+				}
+			};
 
-                // Check if the message has exactly one user mentioned
+			await _pluginService.PreGenerationEvent(postGenerationEventArgs);
+		}
 
-                if (message.MentionedUserIds.Count == 1)
-                {
-                    // Get the mentioned user
-                    ulong mentionedUser = message.MentionedUserIds.FirstOrDefault();
+		private async void SendPostGenerationEvent(object s, SingleGenerationTask sgt)
+		{
+			PostGenerationEventArgs postGenerationEventArgs = new()
+			{
+				Message = sgt.PlaceHolderMessage,
+				DateCreated = sgt.CreatedAt,
+				Images =
+				[
+					new GeneratedImage(sgt.LastImageName, sgt.ImageResult)
+				],
+				Guild = await _discordService.GetGuildAsync(sgt.GuildId),
+				User = sgt.User,
+				GenerationParameters = new GenerationParameters()
+				{
+					Height = sgt.Height,
+					Width = sgt.Width,
+					Seed = sgt.Seed,
+					Prompt = sgt.Prompt,
+					NegativePrompt = sgt.NegativePrompt,
+					SamplerName = sgt.SamplerName,
+					Steps = sgt.Steps
+				}
+			};
 
-                    // Check if the user who added the reaction is the same as the mentioned user
-                    if (mentionedUser != 0 && args.SocketReaction.UserId == mentionedUser)
-                    {
-                        _userTasks.TryCancel(message.Id);
-                        // Delete the message
-                        await message.DeleteAsync();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Handle any exceptions that occur during the process
-                Console.WriteLine($"An error occurred: {ex.Message}");
-            }
-        }
-    }
+			await _pluginService.PostGenerationEvent(postGenerationEventArgs);
+		}
+
+		private async Task TryDeleteMessage(ReactionEventArgs args)
+		{
+			try
+			{
+				// Get the full message from the cache or fetch it from the API
+				IUserMessage message = await args.UserMessage.GetOrDownloadAsync();
+
+				// Check if the message has exactly one user mentioned
+
+				if (message.MentionedUserIds.Count == 1)
+				{
+					// Get the mentioned user
+					ulong mentionedUser = message.MentionedUserIds.FirstOrDefault();
+
+					// Check if the user who added the reaction is the same as the mentioned user
+					if (mentionedUser != 0 && args.SocketReaction.UserId == mentionedUser)
+					{
+						_userTasks.TryCancel(message.Id);
+						// Delete the message
+						await message.DeleteAsync();
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				// Handle any exceptions that occur during the process
+				Console.WriteLine($"An error occurred: {ex.Message}");
+			}
+		}
+	}
 }

@@ -4,7 +4,7 @@ namespace DreamBot.Shared.Utils
 {
     public static class Ensure
     {
-        public static T NotNull<T>(T? o, [CallerMemberName] string memberName = "") where T : class
+        public static T NotNull<T>(T? o, [CallerArgumentExpression(nameof(o))] string memberName = "") where T : class
         {
             if (o == null)
             {
@@ -14,7 +14,7 @@ namespace DreamBot.Shared.Utils
             return o;
         }
 
-        public static T NotNull<T>(T? o, [CallerMemberName] string memberName = "") where T : struct
+        public static T NotNull<T>(T? o, [CallerArgumentExpression(nameof(o))] string memberName = "") where T : struct
         {
             if (!o.HasValue)
             {
@@ -24,7 +24,7 @@ namespace DreamBot.Shared.Utils
             return o.Value;
         }
 
-        public static ulong NotNullOrDefault(ulong? o, [CallerMemberName] string memberName = "")
+        public static ulong NotNullOrDefault(ulong? o, [CallerArgumentExpression(nameof(o))] string memberName = "")
         {
             if (!o.HasValue || o.Value == default)
             {
@@ -34,7 +34,17 @@ namespace DreamBot.Shared.Utils
             return o.Value;
         }
 
-        public static T[] NotNullOrEmpty<T>(T[]? o, [CallerMemberName] string memberName = "")
+		public static Guid NotDefault(Guid o, [CallerArgumentExpression(nameof(o))] string memberName = "")
+		{
+            if (o == Guid.Empty)
+			{
+				throw new ArgumentNullException(memberName);
+			}
+
+			return o;
+		}
+
+		public static T[] NotNullOrEmpty<T>(T[]? o, [CallerArgumentExpression(nameof(o))] string memberName = "")
         {
             if (o == null || o.Length == 0)
             {
@@ -44,7 +54,7 @@ namespace DreamBot.Shared.Utils
             return o;
         }
 
-        public static string NotNullOrWhiteSpace(string? o, [CallerMemberName] string memberName = "")
+        public static string NotNullOrWhiteSpace(string? o, [CallerArgumentExpression(nameof(o))] string memberName = "")
         {
             if (string.IsNullOrWhiteSpace(o))
             {

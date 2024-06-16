@@ -139,7 +139,12 @@ namespace DreamBot.Plugins.Dream
                     _completed = DateTime.Now;
                     string mention = $"👤 <@{_requesterId}>";
                     _finalBody = _settings.ToDiscordString(_completed - _genTaskResult.QueueTime);
-                    LastImageName = await _placeholder.TryUpdate(string.Empty, mention + _finalBody, progress.CurrentImage);
+                    Guid nextGuid = await _placeholder.TryUpdate(string.Empty, mention + _finalBody, progress.CurrentImage);
+
+                    if(nextGuid != Guid.Empty)
+                    {
+                        LastImageName = nextGuid;
+                    }
                 }
                 else
                 {

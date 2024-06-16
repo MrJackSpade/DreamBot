@@ -23,7 +23,7 @@ namespace DreamBot.Plugins.Honeypot
 
         public string Description => "Disables the bot for all users";
 
-        public SlashCommandOption[] SlashCommandOptions => throw new NotImplementedException();
+        public SlashCommandOption[] SlashCommandOptions => Array.Empty<SlashCommandOption>();
 
         public async Task<CommandResult> OnCommand(ShutdownCommand command)
         {

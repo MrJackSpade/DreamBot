@@ -40,23 +40,23 @@ namespace DreamBot.Services
 
         public IReadOnlyList<IReactionHandler> ReactionHandlers => _reactionHandlers;
 
-        public void CallEach<T>(IList<T> collection, Action<T> action) where T : IPlugin
-        {
-            foreach (T handler in collection)
-            {
-                try
-                {
-                    action(handler);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Error calling '{typeof(T).Name}' handler '{handler.GetType()}'");
-                    _logger.LogError(ex);
-                }
-            }
-        }
+		public async Task CallEach<T>(IList<T> collection, Func<T, Task> action) where T : IPlugin
+		{
+			foreach (T handler in collection)
+			{
+				try
+				{
+					await action(handler);
+				}
+				catch (Exception ex)
+				{
+					_logger.LogError($"Error calling '{typeof(T).Name}' handler '{handler.GetType()}'");
+					_logger.LogError(ex);
+				}
+			}
+		}
 
-        public void Command<T>(T command) where T : BaseCommand
+		public void Command<T>(T command) where T : BaseCommand
         {
             List<ICommandProvider<T>> providers = _commandProviders.OfType<ICommandProvider<T>>().ToList();
             this.CallEach(providers, h => h.OnCommand(command));
@@ -80,29 +80,29 @@ namespace DreamBot.Services
 
         public async Task LoadPlugins()
         {
-            if (!Directory.Exists("Plugins"))
+            if (Directory.Exists("Plugins"))
             {
-                return;
+                foreach (FileInfo dllInfo in new DirectoryInfo("Plugins").EnumerateFiles("Dreambot.Plugins.*.dll"))
+                {
+                    _logger.LogInfo($"Loading: {Path.GetFileName(dllInfo.FullName)}");
+
+                    Assembly assembly = Assembly.LoadFile(dllInfo.FullName);
+
+                    await this.LoadPlugins(assembly, dllInfo.FullName);
+                }
             }
 
-            foreach (FileInfo dllInfo in new DirectoryInfo("Plugins").EnumerateFiles("Dreambot.Plugins.*.dll"))
-            {
-                _logger.LogInfo($"Loading: {Path.GetFileName(dllInfo.FullName)}");
-
-                Assembly assembly = Assembly.LoadFile(dllInfo.FullName);
-
-                await this.LoadPlugins(assembly, dllInfo.FullName);
-            }
+            await this.LoadPlugins(Assembly.GetEntryAssembly(), "DreamBot");
         }
 
-        public void PostGenerationEvent(PostGenerationEventArgs args)
+        public async Task PostGenerationEvent(PostGenerationEventArgs args)
         {
-            this.CallEach(_postGenerationEventHandlers, h => h.OnPostGeneration(args));
+            await this.CallEach(_postGenerationEventHandlers, h => h.OnPostGeneration(args));
         }
 
-        public void PreGenerationEvent(PostGenerationEventArgs args)
+        public async Task PreGenerationEvent(PreGenerationEventArgs args)
         {
-            this.CallEach(_preGenerationEventHandlers, h => h.OnPreGeneration(args));
+            await this.CallEach(_preGenerationEventHandlers, h => h.OnPreGeneration(args));
         }
 
         public async Task React(ReactionEventArgs args)

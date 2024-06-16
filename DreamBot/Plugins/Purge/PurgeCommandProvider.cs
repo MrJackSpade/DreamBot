@@ -2,6 +2,7 @@
 using Discord.WebSocket;
 using Dreambot.Plugins.Interfaces;
 using DreamBot.Plugins.EventArgs;
+using DreamBot.Services;
 using DreamBot.Shared.Interfaces;
 using DreamBot.Shared.Models;
 using System;
@@ -29,12 +30,27 @@ namespace DreamBot.Plugins.Purge
                 return CommandResult.Error("Not in guild");
             }
 
+            ulong userId = command.TargetUserId;
+            int days = command.Days;
+
             // Get all text channels in the server
             SocketGuild guild = await _discordService.GetGuildAsync(command.Command.GuildId.Value);
 
-            await _discordService.RemoveUserMessages(guild, command.TargetUserId, command.Days);
+			List<ulong> channelIds = ConfigurationService.GetConfiguredChannels().ToList();
 
-            return CommandResult.Success("Completed");
+			foreach (var channelId in channelIds)
+			{
+				var channel = guild.GetChannel(channelId);
+
+				if (channel is SocketTextChannel stc)
+				{
+					Console.WriteLine($"Purging user {userId} from channel {stc.Name}");
+
+					await _discordService.RemoveUserMessagesFromChannel(stc, userId, days);
+				}
+			}
+
+			return CommandResult.Success("Completed");
         }
 
         public Task OnInitialize(InitializationEventArgs args)

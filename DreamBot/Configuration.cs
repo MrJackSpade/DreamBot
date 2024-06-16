@@ -28,15 +28,6 @@ namespace DreamBot
         [JsonProperty("max_user_queue")]
         public int MaxUserQueue { get; set; } = 1;
 
-        [JsonProperty("notificationChannelId")]
-        public ulong NotificationChannelId { get; set; }
-
-        [JsonProperty("notificationRoleId")]
-        public ulong NotificationRoleId { get; set; }
-
-        [JsonProperty("notificationTriggers")]
-        public string[] NotificationTriggers { get; set; } = [];
-
         [JsonProperty("styles")]
         public Style[] Styles { get; set; } = [new Style()];
 
@@ -54,9 +45,6 @@ namespace DreamBot
     {
         [JsonProperty("display_name")]
         public string? DisplayName { get; set; } = "Default";
-
-        [JsonProperty("model_name")]
-        public string? ModelName { get; set; }
 
         [JsonProperty("negative_prompt")]
         public string? NegativePrompt { get; set; }

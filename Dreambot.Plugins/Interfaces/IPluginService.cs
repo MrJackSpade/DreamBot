@@ -4,6 +4,7 @@ namespace DreamBot.Shared.Interfaces
 {
     public interface IPluginService
     {
-        void PostGenerationEvent(PostGenerationEventArgs postGenerationEventArgs);
-    }
+        Task PostGenerationEvent(PostGenerationEventArgs postGenerationEventArgs);
+		Task PreGenerationEvent(PreGenerationEventArgs postGenerationEventArgs);
+	}
 }

@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Dreambot.Plugins\Dreambot.Plugins.csproj" />
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy &quot;$(ProjectDir)bin\Debug\net8.0\*.*&quot; &quot;$(ProjectDir)..\..\..\DreamBot\DreamBot\bin\Debug\net8.0\Plugins\&quot; /E /Y /I" />
+  </Target>
+
+</Project>

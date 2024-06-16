@@ -26,6 +26,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{4A77EF7E-F
 		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreamBot.Plugins.GPT4", "..\Plugins\Dreambot.Plugins.GPT4\DreamBot.Plugins.GPT4.csproj", "{C14DDE20-D610-417E-A104-6584851EF2CA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -64,6 +66,10 @@ Global
 		{831A977A-A9FA-4208-9176-A6E1D50D4150}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{831A977A-A9FA-4208-9176-A6E1D50D4150}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{831A977A-A9FA-4208-9176-A6E1D50D4150}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C14DDE20-D610-417E-A104-6584851EF2CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C14DDE20-D610-417E-A104-6584851EF2CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C14DDE20-D610-417E-A104-6584851EF2CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C14DDE20-D610-417E-A104-6584851EF2CA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -74,6 +80,7 @@ Global
 		{611C5A1C-E9A8-4803-96A6-AC4D36D15177} = {9D58611F-BC20-4513-84DE-42A07098A02D}
 		{E96E4935-1E52-482E-9FD7-1A3BE3A82005} = {9D58611F-BC20-4513-84DE-42A07098A02D}
 		{831A977A-A9FA-4208-9176-A6E1D50D4150} = {9D58611F-BC20-4513-84DE-42A07098A02D}
+		{C14DDE20-D610-417E-A104-6584851EF2CA} = {9D58611F-BC20-4513-84DE-42A07098A02D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B89FECDB-1D1A-405C-A843-54A9D639CFD1}

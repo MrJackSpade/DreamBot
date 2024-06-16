@@ -1,12 +1,13 @@
 ﻿using DreamBot.Extensions;
 using DreamBot.Models.Automatic;
+using DreamBot.Shared.Interfaces;
 using DreamBot.Tasks;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
 
 namespace DreamBot.Services
 {
-    internal class AutomaticService
+    internal class AutomaticService : IAutomaticService
     {
         private readonly HttpClient _httpClient;
 
