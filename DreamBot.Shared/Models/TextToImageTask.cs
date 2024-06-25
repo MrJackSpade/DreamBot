@@ -6,9 +6,9 @@ namespace DreamBot.Tasks
     {
         public ManualResetEvent _completed = new(false);
 
-        public EventHandler<TextToImageProgress> Completed;
+        public Func<TextToImageProgress, Task> Completed;
 
-        public EventHandler<TextToImageProgress> ProgressUpdated;
+        public Func<TextToImageProgress, Task> ProgressUpdated;
 
         public TextToImageTask(TextToImageRequest request, CancellationToken cancellationToken)
         {
@@ -23,17 +23,23 @@ namespace DreamBot.Tasks
 
         public TextToImageProgress State { get; private set; }
 
-        public void SetProgress(TextToImageProgress state)
+        public async Task SetProgress(TextToImageProgress state)
         {
             if (State is null || State != state)
             {
                 State = state;
 
-                ProgressUpdated?.Invoke(this, state);
+                if (ProgressUpdated != null)
+                {
+                    await ProgressUpdated.Invoke(state);
+                }
 
                 if (state.Completed)
                 {
-                    Completed?.Invoke(this, state);
+                    if (Completed != null)
+                    {
+                        await Completed.Invoke(state);
+                    }
 
                     _completed.Set();
                 }

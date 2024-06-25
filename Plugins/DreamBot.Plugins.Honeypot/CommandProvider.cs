@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using Dreambot.Plugins.EventResults;
 using Dreambot.Plugins.Interfaces;
 using DreamBot.Plugins.EventArgs;
 using DreamBot.Shared.Interfaces;
@@ -49,7 +50,7 @@ namespace DreamBot.Plugins.Honeypot
             return CommandResult.Success();
         }
 
-        public async Task OnInitialize(InitializationEventArgs args)
+        public async Task<InitializationResult> OnInitialize(InitializationEventArgs args)
         {
             _configuration = args.LoadConfiguration<Configuration>();
 
@@ -59,6 +60,8 @@ namespace DreamBot.Plugins.Honeypot
             {
                 NotificationChannel = stc;
             }
+
+            return InitializationResult.Success();
         }
     }
 }

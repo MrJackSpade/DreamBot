@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using Dreambot.Plugins.EventResults;
 using DreamBot.Plugins.EventArgs;
 using DreamBot.Plugins.Interfaces;
 using DreamBot.Shared.Exceptions;
@@ -15,9 +16,14 @@ namespace DreamBot.Plugins.Notifications
 
         private SocketTextChannel? NotificationChannel;
 
-        public async Task OnInitialize(InitializationEventArgs args)
+        public async Task<InitializationResult> OnInitialize(InitializationEventArgs args)
         {
             _configuration = args.LoadConfiguration<Configuration>();
+
+            if(_configuration.NotificationChannelId == 0)
+            {
+                return InitializationResult.Cancel();
+            }
 
             if (await args.DiscordService.GetChannelAsync(_configuration.NotificationChannelId) is SocketTextChannel stc)
             {
@@ -27,6 +33,8 @@ namespace DreamBot.Plugins.Notifications
             {
                 throw new MissingChannelException(_configuration.NotificationChannelId);
             }
+
+            return InitializationResult.Success();
         }
 
         public async Task OnPostGeneration(PostGenerationEventArgs args)

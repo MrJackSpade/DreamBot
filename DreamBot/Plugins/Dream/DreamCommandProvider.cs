@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Dreambot.Plugins.EventResults;
 using Dreambot.Plugins.Interfaces;
 using DreamBot.Collections;
 using DreamBot.Constants;
@@ -7,19 +8,20 @@ using DreamBot.Plugins.EventArgs;
 using DreamBot.Services;
 using DreamBot.Shared.Interfaces;
 using DreamBot.Shared.Models;
-using DreamBot.Shared.Utils;
 
 namespace DreamBot.Plugins.Dream
 {
 	internal class DreamCommandProvider : ICommandProvider<DreamCommand>, IReactionHandler
 	{
-		private readonly ThreadService _threadService = new();
-
 		private readonly Dictionary<string, IAutomaticService> _automaticServices = new();
+
+		private readonly ThreadService _threadService = new();
 
 		private Configuration? _configuration;
 
 		private IDiscordService? _discordService;
+
+		private ILogger? _logger;
 
 		private IPluginService? _pluginService;
 
@@ -35,7 +37,7 @@ namespace DreamBot.Plugins.Dream
 
 		public async Task<CommandResult> OnCommand(DreamCommand generateImageCommand)
 		{
-			SingleGenerationTask singleGenerationTask = new(generateImageCommand, _discordService, _configuration, _userTasks, _automaticServices);
+			SingleGenerationTask singleGenerationTask = new(_logger, generateImageCommand, _discordService, _configuration, _userTasks, _automaticServices);
 
 			if (!singleGenerationTask.TryQueue(out string? errorMessage))
 			{
@@ -45,12 +47,13 @@ namespace DreamBot.Plugins.Dream
 			try
 			{
 				await this.SendPreGenerationEvent(singleGenerationTask, generateImageCommand.Channel);
-			} catch (Exception ex)
+			}
+			catch (Exception ex)
 			{
 				return CommandResult.Error(ex.Message);
 			}
 
-			singleGenerationTask.OnCompleted += this.SendPostGenerationEvent;
+			singleGenerationTask.OnCompleted = this.SendPostGenerationEvent;
 
 			_threadService.Enqueue(singleGenerationTask.GenerateImage);
 
@@ -66,8 +69,9 @@ namespace DreamBot.Plugins.Dream
 			}
 		}
 
-		public Task OnInitialize(InitializationEventArgs args)
+		public Task<InitializationResult> OnInitialize(InitializationEventArgs args)
 		{
+			_logger = args.Logger;
 			_configuration = args.LoadConfiguration<Configuration>();
 
 			_userTasks = new TaskCollection(_configuration.MaxUserQueue);
@@ -78,7 +82,7 @@ namespace DreamBot.Plugins.Dream
 
 			foreach (AutomaticEndPoint endpoint in _configuration.Endpoints)
 			{
-				AutomaticService _automaticService = new (new(endpoint.AutomaticHost, endpoint.AutomaticPort)
+				AutomaticService _automaticService = new(new(endpoint.AutomaticHost, endpoint.AutomaticPort)
 				{
 					AggressiveOptimizations = endpoint.AggressiveOptimizations
 				});
@@ -86,7 +90,7 @@ namespace DreamBot.Plugins.Dream
 				_automaticServices.Add(endpoint.DisplayName, _automaticService);
 			}
 
-			return Task.CompletedTask;
+			return InitializationResult.SuccessAsync();
 		}
 
 		public async Task OnReaction(ReactionEventArgs args)
@@ -109,29 +113,6 @@ namespace DreamBot.Plugins.Dream
 					await this.TryDeleteMessage(args);
 					break;
 			}
-		}
-
-		private async Task SendPreGenerationEvent(SingleGenerationTask sgt, IChannel channel)
-		{
-			PreGenerationEventArgs postGenerationEventArgs = new()
-			{
-				DateCreated = sgt.CreatedAt,
-				Channel = channel,
-				Guild = await _discordService.GetGuildAsync(sgt.GuildId),
-				User = sgt.User,
-				GenerationParameters = new GenerationParameters()
-				{
-					Height = sgt.Height,
-					Width = sgt.Width,
-					Seed = sgt.Seed,
-					Prompt = sgt.Prompt,
-					NegativePrompt = sgt.NegativePrompt,
-					SamplerName = sgt.SamplerName,
-					Steps = sgt.Steps
-				}
-			};
-
-			await _pluginService.PreGenerationEvent(postGenerationEventArgs);
 		}
 
 		private async void SendPostGenerationEvent(object s, SingleGenerationTask sgt)
@@ -159,6 +140,29 @@ namespace DreamBot.Plugins.Dream
 			};
 
 			await _pluginService.PostGenerationEvent(postGenerationEventArgs);
+		}
+
+		private async Task SendPreGenerationEvent(SingleGenerationTask sgt, IChannel channel)
+		{
+			PreGenerationEventArgs postGenerationEventArgs = new()
+			{
+				DateCreated = sgt.CreatedAt,
+				Channel = channel,
+				Guild = await _discordService.GetGuildAsync(sgt.GuildId),
+				User = sgt.User,
+				GenerationParameters = new GenerationParameters()
+				{
+					Height = sgt.Height,
+					Width = sgt.Width,
+					Seed = sgt.Seed,
+					Prompt = sgt.Prompt,
+					NegativePrompt = sgt.NegativePrompt,
+					SamplerName = sgt.SamplerName,
+					Steps = sgt.Steps
+				}
+			};
+
+			await _pluginService.PreGenerationEvent(postGenerationEventArgs);
 		}
 
 		private async Task TryDeleteMessage(ReactionEventArgs args)

@@ -1,5 +1,6 @@
 ﻿using Discord.Rest;
 using Discord.WebSocket;
+using Dreambot.Plugins.EventResults;
 using Dreambot.Plugins.Interfaces;
 using DreamBot.Models;
 using DreamBot.Plugins.EventArgs;
@@ -94,7 +95,7 @@ namespace DreamBot.Plugins.NewThread
             return CommandResult.Success(message);
         }
 
-        public Task OnInitialize(InitializationEventArgs args)
+        public Task<InitializationResult> OnInitialize(InitializationEventArgs args)
         {
             _configuration = args.LoadConfiguration<Configuration>();
 
@@ -107,7 +108,7 @@ namespace DreamBot.Plugins.NewThread
 
             this.SlashCommandOptions = [new("default_style", "The type of model to use for image generation", true, _styles)];
 
-            return Task.CompletedTask;
+            return InitializationResult.SuccessAsync();
         }
     }
 }

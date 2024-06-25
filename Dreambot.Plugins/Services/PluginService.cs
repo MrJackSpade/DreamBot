@@ -1,4 +1,5 @@
-﻿using Dreambot.Plugins.Interfaces;
+﻿using Dreambot.Plugins.EventResults;
+using Dreambot.Plugins.Interfaces;
 using DreamBot.Models.Events;
 using DreamBot.Plugins.EventArgs;
 using DreamBot.Plugins.Interfaces;
@@ -29,7 +30,7 @@ namespace DreamBot.Services
         {
             _logger = logger;
             _discordService = discordService;
-            AppDomain.CurrentDomain.AssemblyResolve += this.OnResolveAssembly;
+            AppDomain.CurrentDomain.AssemblyResolve += this.OnResolveAssembly!;
         }
 
         public IReadOnlyList<ICommandProvider> CommandProviders => _commandProviders;
@@ -56,10 +57,10 @@ namespace DreamBot.Services
 			}
 		}
 
-		public void Command<T>(T command) where T : BaseCommand
+		public async Task Command<T>(T command) where T : BaseCommand
         {
             List<ICommandProvider<T>> providers = _commandProviders.OfType<ICommandProvider<T>>().ToList();
-            this.CallEach(providers, h => h.OnCommand(command));
+            await this.CallEach(providers, h => h.OnCommand(command));
         }
 
         public async Task LoadPlugins(Assembly assembly, string assemblyName)
@@ -92,7 +93,7 @@ namespace DreamBot.Services
                 }
             }
 
-            await this.LoadPlugins(Assembly.GetEntryAssembly(), "DreamBot");
+            await this.LoadPlugins(Assembly.GetEntryAssembly()!, "DreamBot");
         }
 
         public async Task PostGenerationEvent(PostGenerationEventArgs args)
@@ -161,10 +162,19 @@ namespace DreamBot.Services
                     {
                         try
                         {
-                            await plugin.OnInitialize(initializationEventArgs);
-                            collection.Add(plugin);
+                            InitializationResult result = await plugin.OnInitialize(initializationEventArgs);
 
-                            _logger.LogInfo($"Initialized '{typeof(T).Name}' handler '{t}'");
+                            if (result.IsSuccess)
+                            {
+                                collection.Add(plugin);
+
+                                _logger.LogInfo($"Initialized '{typeof(T).Name}' handler '{t}'");
+                            }
+
+                            if (result.IsCancel)
+                            {
+                                _logger.LogWarn($"Cancelled initialization of '{typeof(T).Name}' handler '{t}'");
+							}
                         }
                         catch (Exception ex)
                         {

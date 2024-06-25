@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using Dreambot.Plugins.EventResults;
 using Dreambot.Plugins.Interfaces;
 using DreamBot.Plugins.EventArgs;
 using DreamBot.Services;
@@ -53,10 +54,10 @@ namespace DreamBot.Plugins.Purge
 			return CommandResult.Success("Completed");
         }
 
-        public Task OnInitialize(InitializationEventArgs args)
+        public Task<InitializationResult> OnInitialize(InitializationEventArgs args)
         {
             _discordService = args.DiscordService;
-            return Task.CompletedTask;
+            return InitializationResult.SuccessAsync();
         }
     }
 }

@@ -5,6 +5,7 @@ using DreamBot.Extensions;
 using DreamBot.Models;
 using DreamBot.Models.Automatic;
 using DreamBot.Services;
+using DreamBot.Shared.Extensions;
 using DreamBot.Shared.Interfaces;
 using DreamBot.Shared.Models;
 using DreamBot.Shared.Utils;
@@ -45,8 +46,10 @@ namespace DreamBot.Plugins.Dream
 
         private TextToImageRequest _settings;
 
-        public SingleGenerationTask(DreamCommand dreamCommand, IDiscordService? discordService, Configuration? configuration, TaskCollection? userTasks, IReadOnlyDictionary<string, IAutomaticService>? automaticServices)
+        private readonly ILogger _logger;
+        public SingleGenerationTask(ILogger logger, DreamCommand dreamCommand, IDiscordService? discordService, Configuration? configuration, TaskCollection? userTasks, IReadOnlyDictionary<string, IAutomaticService>? automaticServices)
         {
+            _logger = Ensure.NotNull(logger);
             _discordService = Ensure.NotNull(discordService);
             _configuration = Ensure.NotNull(configuration);
             _userTasks = Ensure.NotNull(userTasks);
@@ -93,7 +96,7 @@ namespace DreamBot.Plugins.Dream
 
             _queuedTask.MessageId = _placeholder.Message.Id;
 
-            //Add emoji after delete event is wired up for safety and lazyiness;
+            //Add emoji after delete event is wired up for safety and laziness;
             await _placeholder.Message.AddReactionsAsync(
             [
                 Emojis.TRASH,
@@ -101,7 +104,7 @@ namespace DreamBot.Plugins.Dream
 
             try
             {
-                _genTaskResult.AutomaticTask.ProgressUpdated += this.ProgressUpdated;
+                _genTaskResult.AutomaticTask.ProgressUpdated = this.ProgressUpdated;
 
                 _genTaskResult.AutomaticTask.Wait();
 
@@ -124,8 +127,10 @@ namespace DreamBot.Plugins.Dream
             }
         }
 
-        public async void ProgressUpdated(object? s, TextToImageProgress progress)
+        public async Task ProgressUpdated(TextToImageProgress progress)
         {
+            _logger.LogDebug($"Progress Updated [{LastImageName}]");
+
             try
             {
                 if (!string.IsNullOrWhiteSpace(progress.Exception))
@@ -135,7 +140,10 @@ namespace DreamBot.Plugins.Dream
                 }
                 else if (progress.Completed)
                 {
+                    _logger.LogDebug("Progress.Completed");
+
                     _settings.Seed = progress.Info!.Seed;
+
                     _completed = DateTime.Now;
                     string mention = $"👤 <@{_requesterId}>";
                     _finalBody = _settings.ToDiscordString(_completed - _genTaskResult.QueueTime);
@@ -144,18 +152,23 @@ namespace DreamBot.Plugins.Dream
 
                     if(nextGuid != Guid.Empty)
                     {
-                        LastImageName = nextGuid;
+						_logger.LogDebug($"FileName: {nextGuid}");
+						LastImageName = nextGuid;
                     }
                 }
                 else
                 {
-                    if (_lastChange.AddMilliseconds(_configuration.UpdateTimeoutMs) > DateTime.Now)
+                    if (LastImageName != Guid.Empty && _lastChange.AddMilliseconds(_configuration.UpdateTimeoutMs) > DateTime.Now)
                     {
-                        return;
+						_logger.LogDebug($"Recently updated, skipping.");
+						return;
                     }
 
                     string displayProgress = $"{(int)(progress.Progress * 100)}% - ETA: {(int)progress.EtaRelative} seconds";
+
                     Guid nextGuid = await _placeholder.TryUpdate(_title, displayProgress, progress.CurrentImage);
+
+                    _logger.LogDebug($"FileName: {nextGuid}");
 
                     if (nextGuid != Guid.Empty)
                     {

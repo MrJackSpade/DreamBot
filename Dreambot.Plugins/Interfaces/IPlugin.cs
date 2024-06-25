@@ -1,9 +1,10 @@
-﻿using DreamBot.Plugins.EventArgs;
+﻿using Dreambot.Plugins.EventResults;
+using DreamBot.Plugins.EventArgs;
 
 namespace DreamBot.Plugins.Interfaces
 {
     public interface IPlugin
     {
-        Task OnInitialize(InitializationEventArgs args);
+        Task<InitializationResult> OnInitialize(InitializationEventArgs args);
     }
 }

@@ -1,4 +1,5 @@
-﻿using DreamBot.Database.Models;
+﻿using Dreambot.Plugins.EventResults;
+using DreamBot.Database.Models;
 using DreamBot.Plugins.Database.Repositories;
 
 using DreamBot.Plugins.Database.Services;
@@ -15,7 +16,7 @@ namespace DreamBot.Plugins.Database
 
         private DatabaseService _databaseService;
 
-        public Task OnInitialize(InitializationEventArgs args)
+        public Task<InitializationResult> OnInitialize(InitializationEventArgs args)
         {
             _configuration = args.LoadConfiguration<Configuration>();
 
@@ -25,7 +26,7 @@ namespace DreamBot.Plugins.Database
                 new GenerationRepository(_configuration.DatabaseConnectionString)
             );
 
-            return Task.CompletedTask;
+            return InitializationResult.SuccessAsync();
         }
 
         public Task OnPostGeneration(PostGenerationEventArgs args)

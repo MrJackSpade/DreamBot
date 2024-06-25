@@ -1,4 +1,5 @@
-﻿using Dreambot.Plugins.Interfaces;
+﻿using Dreambot.Plugins.EventResults;
+using Dreambot.Plugins.Interfaces;
 using DreamBot.Models;
 using DreamBot.Plugins.EventArgs;
 using DreamBot.Services;
@@ -76,9 +77,9 @@ namespace DreamBot.Plugins.UpdateSettings
             return CommandResult.SuccessAsync($"```{settingValue}```");
         }
 
-        public Task OnInitialize(InitializationEventArgs args)
+        public Task<InitializationResult> OnInitialize(InitializationEventArgs args)
         {
-            return Task.CompletedTask;
+            return InitializationResult.SuccessAsync();
         }
     }
 }

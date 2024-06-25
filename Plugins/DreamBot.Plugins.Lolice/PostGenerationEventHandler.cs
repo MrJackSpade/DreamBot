@@ -1,4 +1,5 @@
-﻿using DreamBot.Constants;
+﻿using Dreambot.Plugins.EventResults;
+using DreamBot.Constants;
 using DreamBot.Plugins.EventArgs;
 using DreamBot.Plugins.Interfaces;
 
@@ -6,9 +7,9 @@ namespace DreamBot.Plugins.Lolice
 {
     public class PostGenerationEventHandler : IPostGenerationEventHandler
     {
-        public Task OnInitialize(InitializationEventArgs args)
+        public Task<InitializationResult> OnInitialize(InitializationEventArgs args)
         {
-            return Task.CompletedTask;
+            return InitializationResult.SuccessAsync();
         }
 
         public async Task OnPostGeneration(PostGenerationEventArgs args)
