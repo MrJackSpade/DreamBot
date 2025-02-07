@@ -1,7 +1,7 @@
 ﻿using DreamBot.Models.Events;
 using DreamBot.Plugins.Interfaces;
 
-namespace Dreambot.Plugins.Interfaces
+namespace DreamBot.Plugins.Interfaces
 {
     public interface IReactionHandler : IPlugin
     {

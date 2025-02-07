@@ -12,6 +12,9 @@ namespace DreamBot.Plugins.GPT4
 		[JsonPropertyName("api_key")]
 		public string? ApiKey { get; set; }
 
+		[JsonPropertyName("trusted_role")]
+		public string? TrustedRole { get; set; } = string.Empty;
+
 		[JsonPropertyName("notification_channel_id")]
 		public ulong NotificationChannelId { get; set; } = 0;
 	}

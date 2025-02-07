@@ -1,4 +1,4 @@
-﻿using Dreambot.Plugins.EventResults;
+﻿using DreamBot.Plugins.EventResults;
 using DreamBot.Constants;
 using DreamBot.Plugins.EventArgs;
 using DreamBot.Plugins.Interfaces;

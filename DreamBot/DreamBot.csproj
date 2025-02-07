@@ -8,6 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Tasks\**" />
+    <EmbeddedResource Remove="Tasks\**" />
+    <None Remove="Tasks\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Discord.Net" Version="3.15.0" />
     <PackageReference Include="Loxifi.StaticConfiguration" Version="0.8.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4" />
@@ -27,7 +33,6 @@
   <ItemGroup>
     <Folder Include="Models\Commands\" />
     <Folder Include="Models\Events\" />
-    <Folder Include="Tasks\" />
   </ItemGroup>
 
 </Project>

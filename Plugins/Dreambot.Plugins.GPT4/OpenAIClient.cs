@@ -1,14 +1,10 @@
 ﻿using DreamBot.Plugins.GPT4.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace DreamBot.Plugins.GPT4
 {
-	public class OpenAIClient
+    public class OpenAIClient
 	{
 		public OpenAIClient(string apiKey, string systemPrompt)
 		{

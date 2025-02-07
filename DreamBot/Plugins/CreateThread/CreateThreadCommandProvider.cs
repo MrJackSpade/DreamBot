@@ -1,7 +1,7 @@
 ﻿using Discord.Rest;
 using Discord.WebSocket;
-using Dreambot.Plugins.EventResults;
-using Dreambot.Plugins.Interfaces;
+using DreamBot.Plugins.EventResults;
+using DreamBot.Plugins.Interfaces;
 using DreamBot.Models;
 using DreamBot.Plugins.EventArgs;
 using DreamBot.Services;
@@ -76,8 +76,9 @@ namespace DreamBot.Plugins.NewThread
 
             channelConfiguration.DefaultStyle = command.DefaultStyle;
 
-            channelConfiguration.Prompt = Ensure.NotNullOrWhiteSpace(dStyle.PositivePrompt);
-            channelConfiguration.NegativePrompt = Ensure.NotNullOrWhiteSpace(dStyle.NegativePrompt);
+            //Default styles can be empty for a model, cant be null
+            channelConfiguration.Prompt = Ensure.NotNull(dStyle.PositivePrompt);
+            channelConfiguration.NegativePrompt = Ensure.NotNull(dStyle.NegativePrompt);
 
             ConfigurationService.SaveChannelConfiguration(ric.Id, channelConfiguration);
 

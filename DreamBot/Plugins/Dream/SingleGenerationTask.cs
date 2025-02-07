@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Discord.WebSocket;
 using DreamBot.Collections;
 using DreamBot.Constants;
 using DreamBot.Extensions;
@@ -44,9 +45,11 @@ namespace DreamBot.Plugins.Dream
 
         private QueuedTask? _queuedTask;
 
-        private TextToImageRequest _settings;
+        private readonly TextToImageRequest _settings;
 
         private readonly ILogger _logger;
+        readonly ChannelConfiguration _channelConfiguration;
+
         public SingleGenerationTask(ILogger logger, DreamCommand dreamCommand, IDiscordService? discordService, Configuration? configuration, TaskCollection? userTasks, IReadOnlyDictionary<string, IAutomaticService>? automaticServices)
         {
             _logger = Ensure.NotNull(logger);
@@ -58,13 +61,40 @@ namespace DreamBot.Plugins.Dream
             _requesterId = Ensure.NotNullOrDefault(dreamCommand.User?.Id);
             _channelId = Ensure.NotNullOrDefault(dreamCommand.Channel?.Id);
             _title = $"*<@{_requesterId}> is dreaming of **{string.Join(", ", _dreamCommand.Prompt)}***";
+            _channelConfiguration = ConfigurationService.GetChannelConfiguration(_channelId);
+
+            List<string> prompt = _dreamCommand.Prompt;
+
+            List<string> neg_prompt = _dreamCommand.NegativePrompt;
+
+            foreach (string lora in _dreamCommand.Lora)
+            {
+                prompt.Insert(0, $"<lora:{lora}:{_dreamCommand.LoraStrength}> ");
+            }
+
+            if (_dreamCommand.ApplyDefaultStyles)
+            {
+                prompt = prompt.ApplyTemplate(_channelConfiguration.Prompt);
+                neg_prompt = neg_prompt.ApplyTemplate(_channelConfiguration.NegativePrompt);
+            }
+
+            Resolution resolution = _channelConfiguration.Resolutions[_dreamCommand.AspectRatio.ToString()];
+
+            _settings = new()
+            {
+                Prompt = string.Join(",", prompt.Distinct()),
+                NegativePrompt = string.Join(",", neg_prompt.Distinct()),
+                Width = resolution.Width,
+                Height = resolution.Height,
+                Seed = _dreamCommand.Seed
+            };
         }
 
         public DateTime CreatedAt => _dreamCommand.Command.CreatedAt.DateTime;
 
         public ulong GuildId => _dreamCommand.Command.GuildId ?? 0;
 
-        public int Height => _genTaskResult.AutomaticTask?.Request?.Height ?? 0;
+        public int Height => _settings.Height;
 
         public string ImageResult => _genTaskResult.AutomaticTask?.State?.CurrentImage ?? string.Empty;
 
@@ -72,23 +102,23 @@ namespace DreamBot.Plugins.Dream
 
         public Guid LastImageName { get; private set; } = Guid.Empty;
 
-        public Prompt NegativePrompt => new(_genTaskResult.AutomaticTask?.Request?.NegativePrompt);
+        public Prompt NegativePrompt => new(_settings.NegativePrompt);
 
         public IMessage PlaceHolderMessage => _placeholder.Message;
 
-        public Prompt Prompt => new(_genTaskResult.AutomaticTask?.Request?.Prompt);
+        public Prompt Prompt => new(_settings.Prompt);
 
         public int QueuePosition => _genTaskResult?.QueuePosition ?? -1;
 
         public string SamplerName => _genTaskResult.AutomaticTask?.Request?.SamplerName ?? string.Empty;
 
-        public long Seed => _genTaskResult.AutomaticTask?.Request?.Seed ?? 0;
+        public long Seed => _settings.Seed;
 
-        public int Steps => _genTaskResult.AutomaticTask?.Request?.Steps ?? 0;
+        public int Steps => _settings.Steps;
 
         public IUser User => _dreamCommand.User!;
 
-        public int Width => _genTaskResult.AutomaticTask?.Request?.Width ?? 0;
+        public int Width => _settings.Width;
 
         public async Task GenerateImage()
         {
@@ -110,11 +140,14 @@ namespace DreamBot.Plugins.Dream
 
                 if (!_genTaskResult.Cancelled && string.IsNullOrWhiteSpace(_genTaskResult.AutomaticTask.State.Exception))
                 {
-                    ForumPostService forumPostService = new(_dreamCommand.Channel);
-
-                    if (await forumPostService.IsCreator(_discordService.User.Id))
+                    if (_dreamCommand.Channel is SocketForumChannel)
                     {
-                        await forumPostService.UpdateImage(_genTaskResult.AutomaticTask!.State.CurrentImage!);
+                        ForumPostService forumPostService = new(_dreamCommand.Channel);
+
+                        if (await forumPostService.IsCreator(_discordService.User.Id))
+                        {
+                            await forumPostService.UpdateImage(_genTaskResult.AutomaticTask!.State.CurrentImage!);
+                        }
                     }
 
                     IsSuccess = true;
@@ -184,19 +217,17 @@ namespace DreamBot.Plugins.Dream
 
         public bool TryQueue(out string? errorMessage)
         {
-            ChannelConfiguration channelConfiguration = ConfigurationService.GetChannelConfiguration(_channelId);
-
-            if (string.IsNullOrWhiteSpace(channelConfiguration.DefaultStyle))
+            if (string.IsNullOrWhiteSpace(_channelConfiguration.DefaultStyle))
             {
                 errorMessage = "Channel does not have Default Style set";
                 return false;
             }
 
-            AutomaticEndPoint? matchingEndpoint = _configuration.Endpoints.Where(e => e.SupportedStyleNames.Contains(channelConfiguration.DefaultStyle)).FirstOrDefault();
+            AutomaticEndPoint? matchingEndpoint = _configuration.Endpoints.Where(e => e.SupportedStyleNames.Contains(_channelConfiguration.DefaultStyle)).FirstOrDefault();
 
             if (matchingEndpoint is null)
             {
-                errorMessage = $"No endpoint supporting model '{channelConfiguration.DefaultStyle}' found in configuration";
+                errorMessage = $"No endpoint supporting model '{_channelConfiguration.DefaultStyle}' found in configuration";
                 return false;
             }
 
@@ -205,32 +236,6 @@ namespace DreamBot.Plugins.Dream
                 errorMessage = $"No AutomaticService found with display name '{matchingEndpoint.DisplayName}'";
                 return false;
             }
-
-            Resolution resolution = channelConfiguration.Resolutions[_dreamCommand.AspectRatio.ToString()];
-
-            List<string> prompt = _dreamCommand.Prompt;
-
-            List<string> neg_prompt = _dreamCommand.NegativePrompt;
-
-            foreach (string lora in _dreamCommand.Lora)
-            {
-                prompt.Insert(0, $"<lora:{lora}:{_dreamCommand.LoraStrength}> ");
-            }
-
-            if (_dreamCommand.ApplyDefaultStyles)
-            {
-                prompt = prompt.ApplyTemplate(channelConfiguration.Prompt);
-                neg_prompt = neg_prompt.ApplyTemplate(channelConfiguration.NegativePrompt);
-            }
-
-            _settings = new()
-            {
-                Prompt = string.Join(",", prompt.Distinct()),
-                NegativePrompt = string.Join(",", neg_prompt.Distinct()),
-                Width = resolution.Width,
-                Height = resolution.Height,
-                Seed = _dreamCommand.Seed
-            };
 
             CancellationTokenSource cts = new();
 

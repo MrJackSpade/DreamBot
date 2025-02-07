@@ -1,6 +1,6 @@
 ﻿using Discord;
 
-namespace Dreambot.Plugins.Star
+namespace DreamBot.Plugins.Star
 {
     public static class Emojis
     {

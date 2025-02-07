@@ -18,10 +18,10 @@ namespace DreamBot.Extensions
             {
                 try
                 {
-                    var response = await httpClient.GetAsync(url, cancellationToken);
+                    HttpResponseMessage response = await httpClient.GetAsync(url, cancellationToken);
                     response.EnsureSuccessStatusCode();
 
-                    var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+                    string responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
                     return JsonConvert.DeserializeObject<T>(responseJson)!;
                 }
                 catch (Exception) when (tries-- > 0)
@@ -42,10 +42,14 @@ namespace DreamBot.Extensions
             var json = JsonConvert.SerializeObject(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await httpClient.PostAsync(url, content, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            HttpResponseMessage response = await httpClient.PostAsync(url, content, cancellationToken);
 
-            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+            string responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(responseJson);
+            }
 
             return JsonConvert.DeserializeObject<T>(responseJson)!;
         }

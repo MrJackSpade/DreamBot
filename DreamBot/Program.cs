@@ -1,4 +1,4 @@
-﻿using Dreambot.Plugins.Interfaces;
+﻿using DreamBot.Plugins.Interfaces;
 using DreamBot.Models.Automatic;
 using DreamBot.Services;
 using DreamBot.Shared.Interfaces;

@@ -1,11 +1,13 @@
 ﻿using Discord.WebSocket;
-using Dreambot.Plugins.EventResults;
 using DreamBot.Plugins.EventArgs;
+using DreamBot.Plugins.GPT4.Exceptions;
 using DreamBot.Plugins.GPT4.Models;
 using DreamBot.Plugins.Interfaces;
 using DreamBot.Shared.Exceptions;
 using System.Collections.Concurrent;
+using DreamBot.Shared.Extensions;
 using System.Text;
+using DreamBot.Plugins.EventResults;
 
 namespace DreamBot.Plugins.GPT4
 {
@@ -21,6 +23,8 @@ namespace DreamBot.Plugins.GPT4
 			AGE: [CHILD/TEEN/ADULT/UNSPECIFIED]
 			PERSONHOOD: [FICTIONAL/REAL/CELEBRITY/UNSPECIFIED]
 			STATE: [SAFE/LEWD/PORN/UNSPECIFIED]
+
+			Use of the word "girl" alone should NOT be considered indicative of a child age.
 
 			It is important that you follow the response format exactly so that the API can take the required action.
 
@@ -47,24 +51,30 @@ namespace DreamBot.Plugins.GPT4
 
 		public async Task OnPreGeneration(PreGenerationEventArgs args)
 		{
+			if(_configuration.TrustedRole is string trustedRole)
+			{
+				if (args.User.HasRole(trustedRole))
+				{
+					return;
+				}
+			}
 
 			if (_configuration?.ApiKey != null)
 			{
 				string prompt = args.GenerationParameters.Prompt.Text;
 
-				string result;
-				if (!_cachedResults.TryGetValue(prompt, out result))
-				{
-					OpenAIClient openAIClient = new(_configuration.ApiKey, SystemPrompt);
+                if (!_cachedResults.TryGetValue(prompt, out string? result))
+                {
+                    OpenAIClient openAIClient = new(_configuration.ApiKey, SystemPrompt);
 
-					Message response = await openAIClient.GetResponseAsync(prompt);
+                    Message response = await openAIClient.GetResponseAsync(prompt);
 
-					result = response.Content;
+                    result = response.Content;
 
-					_cachedResults.TryAdd(prompt, result);
-				}
+                    _cachedResults.TryAdd(prompt, result);
+                }
 
-				string[] responseLines = result.Split('\n');
+                string[] responseLines = result.Split('\n');
 
 				string age = responseLines[0].Split(':')[1].Trim();
 				string personhood = responseLines[1].Split(':')[1].Trim();
@@ -73,13 +83,16 @@ namespace DreamBot.Plugins.GPT4
 				bool flag = false;
 
 				flag = flag || age == "CHILD" && state != "SAFE";
-				flag = flag || (age == "TEEN" && state == "PORN");
 				flag = flag || (personhood == "CELEBRITY" && (state == "PORN" || state == "LEWD"));
+
+				bool newUser = args.User is SocketGuildUser sgu && sgu.JoinedAt > DateTime.UtcNow.AddDays(-7);
+                bool isBlocked = flag && newUser;
 
 				string notificationMessage = $"""
 				```
 				{args.GenerationParameters.Prompt.Text}
 				{result}
+				Blocked: {isBlocked}
 				```
 				""";
 
@@ -89,8 +102,12 @@ namespace DreamBot.Plugins.GPT4
 					sb.AppendLine($"https://discord.com/channels/{args.Guild.Id}/{args.Channel.Id}");
 					sb.AppendLine($"<@{args.User.Id}>");
 					sb.AppendLine(notificationMessage);
-
 					await NotificationChannel.SendMessageAsync(sb.ToString());
+				}
+
+				if(isBlocked)
+				{
+					throw new InappropriatePromptException();
 				}
 			}
 		}

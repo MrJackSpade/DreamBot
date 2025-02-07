@@ -1,5 +1,6 @@
-﻿using Dreambot.Plugins.EventResults;
-using Dreambot.Plugins.Interfaces;
+﻿using DreamBot.Plugins.EventResults;
+using DreamBot.Plugins.Exceptions;
+using DreamBot.Plugins.Interfaces;
 using DreamBot.Models.Events;
 using DreamBot.Plugins.EventArgs;
 using DreamBot.Plugins.Interfaces;
@@ -49,6 +50,12 @@ namespace DreamBot.Services
 				{
 					await action(handler);
 				}
+                catch(BlockingException bex)
+                {
+                    _logger.LogError($"Error calling '{typeof(T).Name}' handler '{handler.GetType()}'");
+                    _logger.LogError(bex);
+                    throw;
+                }
 				catch (Exception ex)
 				{
 					_logger.LogError($"Error calling '{typeof(T).Name}' handler '{handler.GetType()}'");

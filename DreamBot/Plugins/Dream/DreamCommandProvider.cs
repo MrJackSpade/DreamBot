@@ -1,6 +1,6 @@
 ﻿using Discord;
-using Dreambot.Plugins.EventResults;
-using Dreambot.Plugins.Interfaces;
+using DreamBot.Plugins.EventResults;
+using DreamBot.Plugins.Interfaces;
 using DreamBot.Collections;
 using DreamBot.Constants;
 using DreamBot.Models.Events;
@@ -39,11 +39,6 @@ namespace DreamBot.Plugins.Dream
 		{
 			SingleGenerationTask singleGenerationTask = new(_logger, generateImageCommand, _discordService, _configuration, _userTasks, _automaticServices);
 
-			if (!singleGenerationTask.TryQueue(out string? errorMessage))
-			{
-				return CommandResult.Error(errorMessage!);
-			}
-
 			try
 			{
 				await this.SendPreGenerationEvent(singleGenerationTask, generateImageCommand.Channel);
@@ -53,7 +48,12 @@ namespace DreamBot.Plugins.Dream
 				return CommandResult.Error(ex.Message);
 			}
 
-			singleGenerationTask.OnCompleted = this.SendPostGenerationEvent;
+            if (!singleGenerationTask.TryQueue(out string? errorMessage))
+            {
+                return CommandResult.Error(errorMessage!);
+            }
+
+            singleGenerationTask.OnCompleted = this.SendPostGenerationEvent;
 
 			_threadService.Enqueue(singleGenerationTask.GenerateImage);
 

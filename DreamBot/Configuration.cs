@@ -47,9 +47,9 @@ namespace DreamBot
         public string? DisplayName { get; set; } = "Default";
 
         [JsonProperty("negative_prompt")]
-        public string? NegativePrompt { get; set; }
+        public string? NegativePrompt { get; set; } = string.Empty;
 
         [JsonProperty("positive_prompt")]
-        public string? PositivePrompt { get; set; }
+        public string? PositivePrompt { get; set; } = string.Empty;
     }
 }

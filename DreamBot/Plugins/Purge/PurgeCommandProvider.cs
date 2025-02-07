@@ -1,7 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using Dreambot.Plugins.EventResults;
-using Dreambot.Plugins.Interfaces;
+using DreamBot.Plugins.EventResults;
+using DreamBot.Plugins.Interfaces;
 using DreamBot.Plugins.EventArgs;
 using DreamBot.Services;
 using DreamBot.Shared.Interfaces;

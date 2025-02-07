@@ -1,7 +1,7 @@
 ﻿using DreamBot.Plugins.Interfaces;
 using DreamBot.Shared.Models;
 
-namespace Dreambot.Plugins.Interfaces
+namespace DreamBot.Plugins.Interfaces
 {
     public interface ICommandProvider : IPlugin
     {

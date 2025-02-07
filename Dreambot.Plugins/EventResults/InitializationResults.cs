@@ -1,4 +1,4 @@
-﻿namespace Dreambot.Plugins.EventResults
+﻿namespace DreamBot.Plugins.EventResults
 {
 	public struct InitializationResult
 	{

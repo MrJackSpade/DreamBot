@@ -1,6 +1,6 @@
 ﻿using Discord;
-using Dreambot.Plugins.EventResults;
-using Dreambot.Plugins.Star;
+using DreamBot.Plugins.EventResults;
+using DreamBot.Plugins.Star;
 using DreamBot.Plugins.EventArgs;
 using DreamBot.Plugins.Interfaces;
 
