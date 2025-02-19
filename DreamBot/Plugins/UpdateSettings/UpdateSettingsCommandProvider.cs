@@ -70,6 +70,11 @@ namespace DreamBot.Plugins.UpdateSettings
                 channelConfiguration.DefaultStyle = command.DefaultStyle;
             }
 
+            if(command.CfgScale.HasValue)
+            {
+                channelConfiguration.CfgScale = command.CfgScale.Value;
+            }
+
             ConfigurationService.SaveChannelConfiguration(command.Channel.Id, channelConfiguration);
 
             string settingValue = JsonConvert.SerializeObject(channelConfiguration, Formatting.Indented);

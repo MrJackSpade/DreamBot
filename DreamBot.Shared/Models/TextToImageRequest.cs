@@ -5,9 +5,6 @@ namespace DreamBot.Models.Automatic
     // Root myDeserializedClass = JsonConvert.DeserializeObject<Root>(myJsonResponse);
     public class AlwaysonScripts
     {
-        [JsonProperty("Comments")]
-        public Comments Comments { get; set; } = new Comments();
-
         [JsonProperty("ControlNet")]
         public ControlNet ControlNet { get; set; } = new ControlNet();
 
@@ -16,12 +13,6 @@ namespace DreamBot.Models.Automatic
 
         [JsonProperty("Extra options")]
         public ExtraOptions ExtraOptions { get; set; } = new ExtraOptions();
-
-        [JsonProperty("FreeU Integrated")]
-        public FreeUIntegrated FreeUIntegrated { get; set; } = new FreeUIntegrated();
-
-        [JsonProperty("HyperTile Integrated")]
-        public HyperTileIntegrated HyperTileIntegrated { get; set; } = new HyperTileIntegrated();
 
         [JsonProperty("Kohya HRFix Integrated")]
         public KohyaHRFixIntegrated KohyaHRFixIntegrated { get; set; } = new KohyaHRFixIntegrated();
@@ -40,9 +31,6 @@ namespace DreamBot.Models.Automatic
 
         [JsonProperty("Seed")]
         public Seed Seed { get; set; } = new Seed();
-
-        [JsonProperty("SelfAttentionGuidance Integrated")]
-        public SelfAttentionGuidanceIntegrated SelfAttentionGuidanceIntegrated { get; set; } = new SelfAttentionGuidanceIntegrated();
 
         [JsonProperty("StyleAlign Integrated")]
         public StyleAlignIntegrated StyleAlignIntegrated { get; set; } = new StyleAlignIntegrated();
@@ -316,7 +304,7 @@ namespace DreamBot.Models.Automatic
         public int BatchSize { get; set; } = 1;
 
         [JsonProperty("cfg_scale")]
-        public decimal CfgScale { get; set; } = 7;
+        public decimal CfgScale { get; set; } = 1;
 
         [JsonProperty("comments")]
         public object Comments { get; set; } = new object();
@@ -379,7 +367,13 @@ namespace DreamBot.Models.Automatic
         public bool RestoreFaces { get; set; }
 
         [JsonProperty("sampler_name")]
-        public string SamplerName { get; set; } = "Euler a";
+        public string SamplerName { get; set; } = "Euler";
+
+        [JsonProperty("sampler_index")]
+        public string SamplerIndex { get; set; } = "Euler a";
+
+        [JsonProperty("scheduler")]
+        public string Scheduler { get; set; } = "Simple";
 
         [JsonProperty("s_churn")]
         public int SChurn { get; set; }

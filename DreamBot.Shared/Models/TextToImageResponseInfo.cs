@@ -30,7 +30,7 @@ namespace DreamBot.Models.Automatic
         public int ClipSkip { get; set; }
 
         [JsonProperty("denoising_strength")]
-        public decimal DenoisingStrength { get; set; }
+        public decimal? DenoisingStrength { get; set; }
 
         [JsonProperty("extra_generation_params")]
         public ExtraGenerationParams ExtraGenerationParams { get; set; } = new ExtraGenerationParams();

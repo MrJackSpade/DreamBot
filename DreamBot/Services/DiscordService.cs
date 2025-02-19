@@ -230,6 +230,16 @@ namespace DreamBot.Services
 								prop.SetValue(payload, value);
 							}
 						}
+						else if (prop.PropertyType == typeof(Decimal?))
+						{
+							string? v = option?.Value?.ToString();
+
+							if (v is not null)
+							{
+								Decimal? value = Decimal.Parse(v);
+								prop.SetValue(payload, value);
+							}
+                        }
 						else if (option.Value.GetType() == prop.PropertyType)
 						{
 							try

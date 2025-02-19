@@ -21,6 +21,8 @@ namespace DreamBot.Plugins.UpdateSettings
 
         public int PortraitWidth { get; set; }
 
+        public decimal? CfgScale { get; set; }
+
         public string? Prompt { get; set; }
 
         public int SquareHeight { get; set; }

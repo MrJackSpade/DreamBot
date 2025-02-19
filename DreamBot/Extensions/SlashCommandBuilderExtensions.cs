@@ -79,16 +79,19 @@ namespace DreamBot.Extensions
             }
             else
             {
-                optionBuilder = property.PropertyType.Name switch
+                string name = property.PropertyType.ToString();
+
+                optionBuilder = name switch
                 {
-                    "List`1" or
-                    nameof(String) or
-                    nameof(Int64) or
-                    nameof(UInt64) => optionBuilder.WithType(ApplicationCommandOptionType.String),
-                    nameof(Int32) or
-                    nameof(UInt32) => optionBuilder.WithType(ApplicationCommandOptionType.Integer),
-                    nameof(Decimal) => optionBuilder.WithType(ApplicationCommandOptionType.Number),
-                    nameof(Boolean) => optionBuilder.WithType(ApplicationCommandOptionType.Boolean),
+                    "System.Collections.Generic.List`1[System.String]" or
+                    "System.String" or
+                    "System.Int64" or
+                    "System.UInt64" => optionBuilder.WithType(ApplicationCommandOptionType.String),
+                    "System.Int32" or
+                    "System.UInt32" => optionBuilder.WithType(ApplicationCommandOptionType.Integer),
+                    "System.Decimal" => optionBuilder.WithType(ApplicationCommandOptionType.Number),
+                    "System.Boolean" => optionBuilder.WithType(ApplicationCommandOptionType.Boolean),
+                    "System.Nullable`1[System.Decimal]" => optionBuilder.WithType(ApplicationCommandOptionType.Number),
                     _ => throw new NotImplementedException(),
                 };
             }

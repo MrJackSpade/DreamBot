@@ -6,6 +6,8 @@
 
         public string NegativePrompt { get; set; } = string.Empty;
 
+        public decimal CfgScale { get; set; } = 1.0m;
+
         public string Prompt { get; set; } = string.Empty;
 
         public Dictionary<string, Resolution> Resolutions { get; set; } = new Dictionary<string, Resolution>()

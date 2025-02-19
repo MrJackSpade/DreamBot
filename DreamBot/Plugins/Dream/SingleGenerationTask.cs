@@ -48,7 +48,8 @@ namespace DreamBot.Plugins.Dream
         private readonly TextToImageRequest _settings;
 
         private readonly ILogger _logger;
-        readonly ChannelConfiguration _channelConfiguration;
+
+        private readonly ChannelConfiguration _channelConfiguration;
 
         public SingleGenerationTask(ILogger logger, DreamCommand dreamCommand, IDiscordService? discordService, Configuration? configuration, TaskCollection? userTasks, IReadOnlyDictionary<string, IAutomaticService>? automaticServices)
         {
@@ -86,7 +87,8 @@ namespace DreamBot.Plugins.Dream
                 NegativePrompt = string.Join(",", neg_prompt.Distinct()),
                 Width = resolution.Width,
                 Height = resolution.Height,
-                Seed = _dreamCommand.Seed
+                Seed = _dreamCommand.Seed,
+                CfgScale = _channelConfiguration.CfgScale,
             };
         }
 
@@ -110,7 +112,7 @@ namespace DreamBot.Plugins.Dream
 
         public int QueuePosition => _genTaskResult?.QueuePosition ?? -1;
 
-        public string SamplerName => _genTaskResult.AutomaticTask?.Request?.SamplerName ?? string.Empty;
+        public string SamplerName => _settings.SamplerName;
 
         public long Seed => _settings.Seed;
 
@@ -183,18 +185,18 @@ namespace DreamBot.Plugins.Dream
 
                     Guid nextGuid = await _placeholder.TryUpdate(string.Empty, mention + _finalBody, progress.CurrentImage);
 
-                    if(nextGuid != Guid.Empty)
+                    if (nextGuid != Guid.Empty)
                     {
-						_logger.LogDebug($"FileName: {nextGuid}");
-						LastImageName = nextGuid;
+                        _logger.LogDebug($"FileName: {nextGuid}");
+                        LastImageName = nextGuid;
                     }
                 }
                 else
                 {
                     if (LastImageName != Guid.Empty && _lastChange.AddMilliseconds(_configuration.UpdateTimeoutMs) > DateTime.Now)
                     {
-						_logger.LogDebug($"Recently updated, skipping.");
-						return;
+                        _logger.LogDebug($"Recently updated, skipping.");
+                        return;
                     }
 
                     string displayProgress = $"{(int)(progress.Progress * 100)}% - ETA: {(int)progress.EtaRelative} seconds";
