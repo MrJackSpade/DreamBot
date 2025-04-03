@@ -25,6 +25,12 @@ namespace DreamBot.Plugins.UpdateSettings
 
         public string? Prompt { get; set; }
 
+        public int Steps { get; set; }
+
+        public string? SamplerName { get; set; }
+
+        public string? SamplerIndex { get; set; }
+
         public int SquareHeight { get; set; }
 
         public int SquareWidth { get; set; }

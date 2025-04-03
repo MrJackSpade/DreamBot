@@ -1,7 +1,7 @@
-﻿using DreamBot.Plugins.EventResults;
-using DreamBot.Plugins.Interfaces;
-using DreamBot.Models;
+﻿using DreamBot.Models;
 using DreamBot.Plugins.EventArgs;
+using DreamBot.Plugins.EventResults;
+using DreamBot.Plugins.Interfaces;
 using DreamBot.Services;
 using DreamBot.Shared.Models;
 using Newtonsoft.Json;
@@ -70,9 +70,24 @@ namespace DreamBot.Plugins.UpdateSettings
                 channelConfiguration.DefaultStyle = command.DefaultStyle;
             }
 
-            if(command.CfgScale.HasValue)
+            if (command.SamplerIndex is not null)
+            {
+                channelConfiguration.SamplerIndex = command.SamplerIndex;
+            }
+
+            if (!string.IsNullOrWhiteSpace(command.SamplerName))
+            {
+                channelConfiguration.SamplerName = command.SamplerName;
+            }
+
+            if (command.CfgScale.HasValue)
             {
                 channelConfiguration.CfgScale = command.CfgScale.Value;
+            }
+
+            if (command.Steps != 0)
+            {
+                channelConfiguration.Steps = command.Steps;
             }
 
             ConfigurationService.SaveChannelConfiguration(command.Channel.Id, channelConfiguration);

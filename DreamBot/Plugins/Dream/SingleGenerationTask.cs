@@ -89,6 +89,9 @@ namespace DreamBot.Plugins.Dream
                 Height = resolution.Height,
                 Seed = _dreamCommand.Seed,
                 CfgScale = _channelConfiguration.CfgScale,
+                SamplerName = _channelConfiguration.SamplerName,
+                SamplerIndex = _channelConfiguration.SamplerIndex,
+                Steps = _channelConfiguration.Steps
             };
         }
 
